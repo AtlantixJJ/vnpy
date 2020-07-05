@@ -6,6 +6,8 @@
 # Jupyter
 .ipynb_checkpoints
 
+mongod
+
 # IDE
 .vscode
 .idea
