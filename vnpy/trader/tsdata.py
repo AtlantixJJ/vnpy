@@ -8,7 +8,6 @@ from vnpy.trader.tstype import *
 from tqdm import tqdm
 import os
 
-
 TOKEN = 'b1de187329ab1435c5940f191db32539c66bdad30db3eb06a512ba70'
 ts.set_token(TOKEN)
 pro = ts.pro_api()
@@ -138,9 +137,8 @@ def synchronize_historical_data():
         idxs.append(nidx[c2])
         c2 += 1
 
-  for idx in tqdm(idxs):
+  for idx in tqdm(idxs[1071:]):
     if idx < 0:
-      os.system("sleep 8")
       continue
     obj = objs[int(idx)]
     print(f"=> Downloading {obj.name}")
@@ -148,6 +146,7 @@ def synchronize_historical_data():
       # 沪港通、深港通，获取北向资金
       print("=> Calling HS")
       north_capital = download_north(obj.ts_code)
+      os.system("sleep 30")
     download_day_K(obj.ts_code)
     download_daily_basic(obj.ts_code)
     download_balance_sheet(obj.ts_code)
