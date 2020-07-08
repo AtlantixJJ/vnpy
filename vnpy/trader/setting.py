@@ -24,8 +24,8 @@ SETTINGS: Dict[str, Any] = {
     "email.sender": "",
     "email.receiver": "",
 
-    "rqdata.username": "",
-    "rqdata.password": "",
+    "rqdata.username": "15810582612",
+    "rqdata.password": "PLOGp619503",
 
     "database.timezone": get_localzone().zone,
     "database.driver": "mongodb",                # see database.Driver

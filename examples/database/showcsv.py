@@ -8,11 +8,11 @@ from vnpy.app.data_manager import ManagerEngine
 
 if __name__ == "__main__":
   app = create_qapp()
-
+  name = "600031.SH_三一重工"
   ManagerEngine.import_data_from_csv(
     "",
-    "/Users/jianjinxu/python/waditu/day_K/000016.SZ_深康佳A.csv",
-    "000016.SZ_深康佳A",
+    f"/Users/jianjinxu/python/waditu/day_K_north/{name}.csv",
+    name,
     Exchange.SSE,
     Interval.DAILY,
     "trade_date",
@@ -20,12 +20,12 @@ if __name__ == "__main__":
     "high",
     "low",
     "close",
-    "vol",
+    "north_delta",
     "amount",
     "%Y%m%d")
   
   bars = database_manager.load_bar_data(
-    "000016.SZ_深康佳A",
+    name,
     Exchange.SSE,
     Interval.DAILY,
     '20140101',

@@ -84,8 +84,8 @@ class Exchange(Enum):
     CZCE = "CZCE"           # Zhengzhou Commodity Exchange
     DCE = "DCE"             # Dalian Commodity Exchange
     INE = "INE"             # Shanghai International Energy Exchange
-    SSE = "SSE"             # Shanghai Stock Exchange
-    SZSE = "SZSE"           # Shenzhen Stock Exchange
+    SSE = "SH"#"SSE"             # Shanghai Stock Exchange
+    SZSE = "SZ"#"SZSE"           # Shenzhen Stock Exchange
     SGE = "SGE"             # Shanghai Gold Exchange
     WXE = "WXE"             # Wuxi Steel Exchange
     CFETS = "CFETS"         # China Foreign Exchange Trade System
