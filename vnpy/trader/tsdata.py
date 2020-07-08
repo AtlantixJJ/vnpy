@@ -6,6 +6,7 @@ from datetime import datetime
 import numpy as np
 from vnpy.trader.tstype import *
 from tqdm import tqdm
+import os
 
 
 TOKEN = 'b1de187329ab1435c5940f191db32539c66bdad30db3eb06a512ba70'
@@ -119,11 +120,33 @@ def synchronize_historical_data():
   # equity basics
   download_equity_basic()
   objs = EquityBasic.objects()
-  for obj in tqdm(objs):
+
+  # arrange to get the maximum bandwidth
+  mask = np.array([obj.is_hs == "S" for obj in objs])
+  sidx = np.where(mask)[0]
+  nidx = np.where(~mask)[0]
+  idxs = []
+  c1, c2 = 0, 0
+  for i in range(len(mask)):
+    if i % 5 == 0:
+      idxs.append(sidx[c1])
+      c1 += 1
+    else:
+      if c2 >= len(nidx):
+        idxs.append(-1)
+      else:
+        idxs.append(nidx[c2])
+        c2 += 1
+
+  for idx in tqdm(idxs):
+    if idx < 0:
+      os.system("sleep 8")
+      continue
+    obj = objs[int(idx)]
     print(f"=> Downloading {obj.name}")
-    download_equity_basic(obj.ts_code)
     if obj.is_hs == "S":
       # 沪港通、深港通，获取北向资金
+      print("=> Calling HS")
       north_capital = download_north(obj.ts_code)
     download_day_K(obj.ts_code)
     download_daily_basic(obj.ts_code)
@@ -136,7 +159,7 @@ def synchronize_historical_data():
     
 
 if __name__ == "__main__":
-  synchronize_historical_data()
+  ts_code = "000002.SZ"
   #print_key_type(get_key_type(daily_basic_dic))
   #download_daily_basic(ts_code)
   #download_day_K_history(ts_code)
@@ -147,27 +170,25 @@ if __name__ == "__main__":
   #print(df.values[0])
   #print_key_type(get_key_type(df))
 
-  """
-  print("North: \n")
-  df = download_north(ts_code)
-  print_key_type(get_key_type(df))
+  #print("North: \n")
+  #df = download_north(ts_code)
+  #print_key_type(get_key_type(df))
 
-  print("Income:\n")
-  df = download_income_table(ts_code)
-  print_key_type(get_key_type(df))
+  #print("Income:\n")
+  #df = download_income_table(ts_code)
+  #print_key_type(get_key_type(df))
 
-  print("Balance:\n")
-  df = download_balance_sheet(ts_code)
-  print_key_type(get_key_type(df))
+  #print("Balance:\n")
+  #df = download_balance_sheet(ts_code)
+  #print_key_type(get_key_type(df))
 
-  print("Cashflow:\n")
-  df = download_cashflow(ts_code)
-  print_key_type(get_key_type(df))
+  #print("Cashflow:\n")
+  #df = download_cashflow(ts_code)
+  #print_key_type(get_key_type(df))
 
-  print("Fina:\n")
-  df = download_finance_indicator(ts_code)
-  print_key_type(get_key_type(df))
-  """
+  #print("Fina:\n")
+  #df = download_finance_indicator(ts_code)
+  #print_key_type(get_key_type(df))
 
 
   """
@@ -181,3 +202,6 @@ if __name__ == "__main__":
       trade_date=trade_date)
   print(obj)
   """
+
+  synchronize_historical_data()
+  
