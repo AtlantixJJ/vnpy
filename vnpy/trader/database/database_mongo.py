@@ -225,12 +225,8 @@ class MongoManager(BaseDatabaseManager):
 
     @staticmethod
     def to_update_param(d) -> dict:
-        dt = d.datetime.astimezone(DB_TZ)
-        d.datetime = dt.replace(tzinfo=None)
-
         param = {
-            "set__" + k: v.value if isinstance(v, Enum) else v
-            for k, v in d.__dict__.items()
+            "set__" + k: v for k, v in d.items()
         }
         return param
 
