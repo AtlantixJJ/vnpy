@@ -136,8 +136,8 @@ def synchronize_historical_data():
       else:
         idxs.append(nidx[c2])
         c2 += 1
-
-  for idx in tqdm(idxs[1071:]):
+  # 中船汉光missing
+  for idx in tqdm(idxs[1798:]):
     if idx < 0:
       continue
     obj = objs[int(idx)]
