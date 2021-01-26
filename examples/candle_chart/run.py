@@ -1,5 +1,6 @@
 from datetime import datetime
-
+import sys
+sys.path.insert(0, ".")
 from vnpy.trader.ui import create_qapp, QtCore
 from vnpy.trader.database import database_manager
 from vnpy.trader.constant import Exchange, Interval
@@ -9,12 +10,11 @@ if __name__ == "__main__":
     app = create_qapp()
 
     bars = database_manager.load_bar_data(
-        "IF888",
-        Exchange.CFFEX,
-        interval=Interval.MINUTE,
-        start=datetime(2019, 7, 1),
-        end=datetime(2019, 7, 17)
-    )
+        "sh000003",
+        Exchange.SSE,
+        interval=Interval.DAILY,
+        start=datetime(2020, 1, 1),
+        end=datetime(2021, 1, 1))
 
     widget = ChartWidget()
     widget.add_plot("candle", hide_x_axis=True)
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update_bar)
-    # timer.start(100)
-
+    timer.start(100)
+    print("show")
     widget.show()
     app.exec_()

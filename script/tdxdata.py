@@ -1,4 +1,5 @@
 import sys, glob, os
+path = os.getcwd()
 sys.path.insert(0, ".")
 from pytdx.reader import TdxDailyBarReader, TdxFileNotFoundException
 from datetime import datetime
@@ -10,7 +11,8 @@ from tqdm import tqdm
 event_engine = EventEngine()
 main_engine = MainEngine(event_engine)
 data_manager = ManagerEngine(main_engine, event_engine)
-DATA_DIR = "/home/atlantix/vnpy/data"
+os.chdir(path)
+DATA_DIR = "data"
 interval = Interval.DAILY
 reader = TdxDailyBarReader()
 for data_dir in ["szlday", "shlday"]:
