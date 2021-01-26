@@ -13,9 +13,9 @@ if __name__ == "__main__":
         "sh000003",
         Exchange.SSE,
         interval=Interval.DAILY,
-        start=datetime(2020, 1, 1),
+        start=datetime(2015, 1, 1),
         end=datetime(2021, 1, 1))
-
+    print(len(bars))
     widget = ChartWidget()
     widget.add_plot("candle", hide_x_axis=True)
     widget.add_plot("volume", maximum_height=200)
@@ -35,7 +35,6 @@ if __name__ == "__main__":
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update_bar)
-    timer.start(100)
-    print("show")
+
     widget.show()
     app.exec_()
