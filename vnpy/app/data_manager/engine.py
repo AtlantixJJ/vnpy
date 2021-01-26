@@ -190,7 +190,6 @@ class ManagerEngine(BaseEngine):
     def get_bar_data_available(self) -> List[Dict]:
         """"""
         data = database_manager.get_bar_data_statistics()
-
         for d in data:
             oldest_bar = database_manager.get_oldest_bar_data(
                 d["symbol"], Exchange(d["exchange"]), Interval(d["interval"])
@@ -214,6 +213,25 @@ class ManagerEngine(BaseEngine):
     ) -> List[BarData]:
         """"""
         bars = database_manager.load_bar_data(
+            symbol,
+            exchange,
+            interval,
+            start,
+            end
+        )
+
+        return bars
+
+    def load_bar_data_s(
+        self,
+        symbol: str,
+        exchange: str,
+        interval: str,
+        start: datetime,
+        end: datetime
+    ) -> List[BarData]:
+        """"""
+        bars = database_manager.load_bar_data_s(
             symbol,
             exchange,
             interval,

@@ -215,6 +215,24 @@ class MongoManager(BaseDatabaseManager):
         data = [db_bar.to_bar() for db_bar in s]
         return data
 
+    def load_bar_data_s(
+        self,
+        symbol: str,
+        exchange: str,
+        interval: str,
+        start: datetime,
+        end: datetime,
+    ) -> Sequence[BarData]:
+        s = DbBarData.objects(
+            symbol=symbol,
+            exchange=exchange,
+            interval=interval,
+            datetime__gte=convert_tz(start),
+            datetime__lte=convert_tz(end),
+        )
+        data = [db_bar.to_bar() for db_bar in s]
+        return data
+
     def load_tick_data(
         self, symbol: str, exchange: Exchange, start: datetime, end: datetime
     ) -> Sequence[TickData]:
