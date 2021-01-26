@@ -23,6 +23,60 @@ class ManagerEngine(BaseEngine):
         """"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
+    def import_data_from_dict(
+        self,
+        reader : dict,
+        symbol: str,
+        exchange: Exchange,
+        interval: Interval,
+        datetime_head: str,
+        open_head: str,
+        high_head: str,
+        low_head: str,
+        close_head: str,
+        volume_head: str,
+        open_interest_head: str,
+        datetime_format: str
+    ) -> Tuple:
+        bars = []
+        start = None
+        count = 0
+
+        for i in range(reader.shape[0]):
+            dt = reader.index[i].tz_localize('utc')
+
+            if open_interest_head:
+                open_interest = reader.get(open_interest_head, 0)
+            else:
+                open_interest = 0
+
+            bar = BarData(
+                symbol=symbol,
+                exchange=exchange,
+                datetime=dt,
+                interval=interval,
+                volume=float(reader[volume_head][i]),
+                open_price=float(reader[open_head][i]),
+                high_price=float(reader[high_head][i]),
+                low_price=float(reader[low_head][i]),
+                close_price=float(reader[close_head][i]),
+                open_interest=float(open_interest),
+                gateway_name="DB",
+            )
+
+            bars.append(bar)
+
+            # do some statistics
+            count += 1
+            if not start:
+                start = bar.datetime
+
+        # insert into database
+        database_manager.save_bar_data(bars)
+
+        end = bar.datetime
+        return start, end, count
+
     def import_data_from_csv(
         self,
         file_path: str,
@@ -54,7 +108,10 @@ class ManagerEngine(BaseEngine):
             else:
                 dt = datetime.fromisoformat(item[datetime_head])
 
-            open_interest = item.get(open_interest_head, 0)
+            if open_interest_head:
+                open_interest = item.get(open_interest_head, 0)
+            else:
+                open_interest = 0
 
             bar = BarData(
                 symbol=symbol,
