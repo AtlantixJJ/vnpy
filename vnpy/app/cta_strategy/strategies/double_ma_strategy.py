@@ -82,18 +82,16 @@ class DoubleMaStrategy(CtaTemplate):
         cross_below = self.fast_ma0 < self.slow_ma0 and self.fast_ma1 > self.slow_ma1
 
         if cross_over:
-            if self.pos == 0:
-                self.buy(bar.close_price, 1)
-            elif self.pos < 0:
-                self.cover(bar.close_price, 1)
-                self.buy(bar.close_price, 1)
+            self.buy(bar.close_price, 1)
+            self.last_buy = bar.close_price
 
         elif cross_below:
-            if self.pos == 0:
-                self.short(bar.close_price, 1)
-            elif self.pos > 0:
-                self.sell(bar.close_price, 1)
-                self.short(bar.close_price, 1)
+            if self.pos > 0:
+                if self.last_buy * 0.9 > bar.close_price:
+                    # Admit we are wrong, stick to holding
+                    pass
+                else:
+                    self.sell(bar.close_price, self.pos)
 
         self.put_event()
 

@@ -11,6 +11,9 @@ from tqdm import tqdm
 event_engine = EventEngine()
 main_engine = MainEngine(event_engine)
 data_manager = ManagerEngine(main_engine, event_engine)
+bars = data_manager.get_bar_data_available()
+symbols = set([b['symbol'] for b in bars])
+print(symbols)
 os.chdir(path)
 DATA_DIR = "data"
 interval = Interval.DAILY
@@ -20,11 +23,14 @@ for data_dir in ["szlday", "shlday"]:
     files = glob.glob(f"{DATA_DIR}/{data_dir}/*")
     files.sort()
     for f in tqdm(files):
+        name = f[-10:-4]
+        if name in symbols:
+            print(f"=> Skip {name}")
+            continue
         try:
             df = reader.get_df(f)
         except:
             print(f"!> skip {f}")
-        name = f[-10:-4]
         data_manager.import_data_from_dict(
             reader=df,
             symbol=name,

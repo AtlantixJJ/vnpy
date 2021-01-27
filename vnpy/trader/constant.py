@@ -139,6 +139,14 @@ class Exchange(Enum):
     LOCAL = "LOCAL"         # For local generated data
 
 
+STR2EXCHANGE = {"SZSE" : Exchange.SZSE, "SSE" : Exchange.SSE}
+
+
+def str2contract(s):
+    symbol, exchange = s.split(".")
+    return symbol, STR2EXCHANGE[exchange]
+
+
 class Currency(Enum):
     """
     Currency.

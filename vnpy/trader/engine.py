@@ -14,6 +14,7 @@ from typing import Any, Sequence, Type, Dict, List, Optional
 
 from vnpy.event import Event, EventEngine
 from .app import BaseApp
+from .constant import STR2EXCHANGE
 from .event import (
     EVENT_TICK,
     EVENT_ORDER,
@@ -445,7 +446,12 @@ class OmsEngine(BaseEngine):
         """
         Get contract data by vt_symbol.
         """
-        return self.contracts.get(vt_symbol, None)
+        # [modified]
+        #return self.contracts.get(vt_symbol, None)
+        symbol, exchange = vt_symbol.split(".")
+        exchange = STR2EXCHANGE[exchange]
+        x = ContractData("XTP", symbol, exchange, symbol, symbol, 0, 0.01)
+        return x
 
     def get_all_ticks(self) -> List[TickData]:
         """

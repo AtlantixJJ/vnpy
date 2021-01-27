@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from tzlocal import get_localzone
 
 from vnpy.event import EventEngine, Event
-from vnpy.chart import ChartWidget, CandleItem, VolumeItem
+from vnpy.chart import ChartWidget, CandleItem, VolumeItem, MAItem, EstAmountItem
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import QtWidgets, QtCore
 from vnpy.trader.event import EVENT_TICK
@@ -60,9 +60,10 @@ class ChartWizardWidget(QtWidgets.QWidget):
         """"""
         chart = ChartWidget()
         chart.add_plot("candle", hide_x_axis=True)
-        chart.add_plot("volume", maximum_height=200)
+        chart.add_plot("amount", maximum_height=200)
         chart.add_item(CandleItem, "candle", "candle")
-        chart.add_item(VolumeItem, "volume", "volume")
+        chart.add_item(MAItem, "MA5", "candle", N=5)
+        chart.add_item(EstAmountItem, "amount", "amount")
         chart.add_cursor()
         return chart
 
@@ -76,10 +77,6 @@ class ChartWizardWidget(QtWidgets.QWidget):
         if vt_symbol in self.charts:
             return
 
-        contract = self.main_engine.get_contract(vt_symbol)
-        if not contract:
-            return
-
         # Create new chart
         self.bgs[vt_symbol] = BarGenerator(self.on_bar)
 
@@ -90,11 +87,11 @@ class ChartWizardWidget(QtWidgets.QWidget):
 
         # Query history data
         end = datetime.now(get_localzone())
-        start = end - timedelta(days=5)
+        start = end - timedelta(days=250)
 
         self.chart_engine.query_history(
             vt_symbol,
-            Interval.MINUTE,
+            Interval.DAILY,
             start,
             end
         )
@@ -132,7 +129,7 @@ class ChartWizardWidget(QtWidgets.QWidget):
 
         # Subscribe following data update
         contract = self.main_engine.get_contract(bar.vt_symbol)
-
+        
         req = SubscribeRequest(
             contract.symbol,
             contract.exchange

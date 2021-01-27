@@ -6,6 +6,10 @@ from vnpy.trader.object import BarData
 from .base import to_int
 
 
+def est_amount(bar):
+    return (bar.open_price + bar.close_price) / 2 * bar.volume * 100
+
+
 class BarManager:
     """"""
 
@@ -17,6 +21,7 @@ class BarManager:
 
         self._price_ranges: Dict[Tuple[int, int], Tuple[float, float]] = {}
         self._volume_ranges: Dict[Tuple[int, int], Tuple[float, float]] = {}
+        self._amount_ranges: Dict[Tuple[int, int], Tuple[float, float]] = {}
 
     def update_history(self, history: List[BarData]) -> None:
         """
@@ -151,6 +156,37 @@ class BarManager:
 
         self._volume_ranges[(min_ix, max_ix)] = (min_volume, max_volume)
         return min_volume, max_volume
+
+    def get_amount_range(self, min_ix: float = None, max_ix: float = None) -> Tuple[float, float]:
+        """
+        Get volume range to show within given index range.
+        """
+        if not self._bars:
+            return 0, 1
+
+        if not min_ix:
+            min_ix = 0
+            max_ix = len(self._bars) - 1
+        else:
+            min_ix = to_int(min_ix)
+            max_ix = to_int(max_ix)
+            max_ix = min(max_ix, self.get_count())
+
+        buf = self._amount_ranges.get((min_ix, max_ix), None)
+        if buf:
+            return buf
+
+        bar_list = list(self._bars.values())[min_ix:max_ix + 1]
+
+        first_bar = bar_list[0]
+        max_amount = est_amount(first_bar)
+        min_amount = 0
+
+        for bar in bar_list[1:]:
+            max_amount = max(max_amount, est_amount(bar))
+
+        self._amount_ranges[(min_ix, max_ix)] = (min_amount, max_amount)
+        return min_amount, max_amount
 
     def _clear_cache(self) -> None:
         """

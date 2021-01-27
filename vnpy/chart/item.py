@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import List, Dict, Tuple
+from collections import deque
 
 import pyqtgraph as pg
 
@@ -144,6 +145,70 @@ class ChartItem(pg.GraphicsObject):
         self._item_picuture = None
         self._bar_picutures.clear()
         self.update()
+
+
+class MAItem(ChartItem):
+    """"""
+
+    def __init__(self, manager: BarManager, N=5):
+        """"""
+        super().__init__(manager)
+        self.N = N
+        self.win = deque()
+        self.last_ma = 0
+
+    def _draw_bar_picture(self, ix: int, bar: BarData) -> QtGui.QPicture:
+        """"""
+        # Create objects
+        line = QtGui.QPicture()
+        painter = QtGui.QPainter(line)
+
+        # Add to window
+        self.win.append(bar.close_price)
+        if len(self.win) > self.N:
+            self.win.popleft()
+
+        # At the first bar, don't draw
+        if ix == 0:
+            self.last_ma = self.win[0]
+            return line
+
+
+        # Set painter color
+        painter.setPen(self._up_pen)
+        painter.setBrush(self._black_brush)
+
+        cur_ma = sum(self.win) / self.N
+        painter.drawLine(
+            QtCore.QPointF(ix - 1, self.last_ma),
+            QtCore.QPointF(ix, cur_ma))
+        #print(self.win, self.last_ma, cur_ma)
+
+        # Finish
+        painter.end()
+        self.last_ma = cur_ma
+        return line
+
+
+    def boundingRect(self) -> QtCore.QRectF:
+        """"""
+        min_price, max_price = self._manager.get_price_range()
+        rect = QtCore.QRectF(
+            0,
+            min_price,
+            len(self._bar_picutures),
+            max_price - min_price
+        )
+        return rect
+
+    def get_y_range(self, min_ix: int = None, max_ix: int = None) -> Tuple[float, float]:
+        """
+        Get range of y-axis with given x-axis range.
+
+        If min_ix and max_ix not specified, then return range with whole data set.
+        """
+        min_price, max_price = self._manager.get_price_range(min_ix, max_ix)
+        return min_price, max_price
 
 
 class CandleItem(ChartItem):
@@ -307,7 +372,84 @@ class VolumeItem(ChartItem):
         bar = self._manager.get_bar(ix)
 
         if bar:
-            text = f"Volume {bar.volume}"
+            text = f"Volume {int(bar.volume)}"
+        else:
+            text = ""
+
+        return text
+
+
+def est_amount(bar):
+    return (bar.open_price + bar.close_price) / 2 * bar.volume * 100
+
+
+class EstAmountItem(ChartItem):
+    """"""
+
+    def __init__(self, manager: BarManager):
+        """"""
+        super().__init__(manager)
+
+    def _draw_bar_picture(self, ix: int, bar: BarData) -> QtGui.QPicture:
+        """"""
+        # Create objects
+        volume_picture = QtGui.QPicture()
+        painter = QtGui.QPainter(volume_picture)
+
+        # Set painter color
+        if bar.close_price >= bar.open_price:
+            painter.setPen(self._up_pen)
+            painter.setBrush(self._up_brush)
+        else:
+            painter.setPen(self._down_pen)
+            painter.setBrush(self._down_brush)
+
+        # Draw volume body
+        rect = QtCore.QRectF(
+            ix - BAR_WIDTH,
+            0,
+            BAR_WIDTH * 2,
+            est_amount(bar) / 1_0000_0000
+        )
+        painter.drawRect(rect)
+
+        # Finish
+        painter.end()
+        return volume_picture
+
+    def boundingRect(self) -> QtCore.QRectF:
+        """"""
+        min_amount, max_amount = self._manager.get_amount_range()
+        min_amount /= 1_0000_0000
+        max_amount /= 1_0000_0000
+        rect = QtCore.QRectF(
+            0,
+            min_amount,
+            len(self._bar_picutures),
+            max_amount - min_amount
+        )
+        return rect
+
+    def get_y_range(self, min_ix: int = None, max_ix: int = None) -> Tuple[float, float]:
+        """
+        Get range of y-axis with given x-axis range.
+
+        If min_ix and max_ix not specified, then return range with whole data set.
+        """
+        min_amount, max_amount = self._manager.get_amount_range(min_ix, max_ix)
+        min_amount /= 1_0000_0000
+        max_amount /= 1_0000_0000
+        return min_amount, max_amount 
+
+    def get_info_text(self, ix: int) -> str:
+        """
+        Get information text to show by cursor.
+        """
+        bar = self._manager.get_bar(ix)
+        amount = est_amount(bar)
+        amount /= 1_0000_0000
+        if bar:
+            text = f"成交额（估计） {amount:.2f} 亿"
         else:
             text = ""
 

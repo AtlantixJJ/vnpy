@@ -114,12 +114,13 @@ class ChartWidget(pg.PlotWidget):
         self,
         item_class: Type[ChartItem],
         item_name: str,
-        plot_name: str
+        plot_name: str,
+        **kwargs
     ):
         """
         Add chart item.
         """
-        item = item_class(self._manager)
+        item = item_class(self._manager, **kwargs)
         self._items[item_name] = item
 
         plot = self._plots.get(plot_name)
