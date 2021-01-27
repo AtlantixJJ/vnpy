@@ -418,10 +418,10 @@ class ElectronicEyeMonitor(QtWidgets.QTableWidget):
         if not cells:
             return
 
-        cells["bid_price"].setText(str(tick.bid_price_1))
-        cells["ask_price"].setText(str(tick.ask_price_1))
-        cells["bid_volume"].setText(str(tick.bid_volume_1))
-        cells["ask_volume"].setText(str(tick.ask_volume_1))
+        cells["bid_price"].setText(f"{tick.bid_price_1 :.2f}")
+        cells["ask_price"].setText(f"{tick.ask_price_1 :.2f}")
+        cells["bid_volume"].setText(str(int(tick.bid_volume_1)))
+        cells["ask_volume"].setText(str(int(tick.ask_volume_1)))
 
     def process_status_event(self, event: Event) -> None:
         """"""
@@ -444,10 +444,10 @@ class ElectronicEyeMonitor(QtWidgets.QTableWidget):
         cells = self.cells[algo.vt_symbol]
 
         if algo.ref_price:
-            cells["algo_bid_price"].setText(str(algo.algo_bid_price))
-            cells["algo_ask_price"].setText(str(algo.algo_ask_price))
+            cells["algo_bid_price"].setText(f"{algo.algo_bid_price:.2f}")
+            cells["algo_ask_price"].setText(f"{algo.algo_ask_price:.2f}")
             cells["algo_spread"].setText(str(algo.algo_spread))
-            cells["ref_price"].setText(str(algo.ref_price))
+            cells["ref_price"].setText(f"{algo.ref_price:.2f}")
             cells["pricing_impv"].setText(f"{algo.pricing_impv * 100:.2f}")
         else:
             cells["algo_bid_price"].setText("")

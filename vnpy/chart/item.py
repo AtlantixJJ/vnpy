@@ -228,16 +228,16 @@ class CandleItem(ChartItem):
                 bar.datetime.strftime("%H:%M"),
                 "",
                 "Open",
-                str(bar.open_price),
+                f"{bar.open_price:.2f}",
                 "",
                 "High",
-                str(bar.high_price),
+                f"{bar.high_price:.2f}",
                 "",
                 "Low",
-                str(bar.low_price),
+                f"{bar.low_price:.2f}",
                 "",
                 "Close",
-                str(bar.close_price)
+                f"{bar.close_price:.2f}"
             ]
             text = "\n".join(words)
         else:

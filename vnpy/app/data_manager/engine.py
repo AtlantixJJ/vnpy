@@ -256,6 +256,9 @@ class ManagerEngine(BaseEngine):
 
         return count
 
+    def clear_data(self) -> None:
+        database_manager.clear_data()
+
     def download_bar_data(
         self,
         symbol: str,

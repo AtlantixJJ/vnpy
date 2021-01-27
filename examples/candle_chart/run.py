@@ -1,5 +1,7 @@
 from datetime import datetime
-import sys
+import sys, os
+fpath = os.getcwd()
+print(fpath)
 sys.path.insert(0, ".")
 from vnpy.trader.ui import create_qapp, QtCore
 from vnpy.trader.database import database_manager

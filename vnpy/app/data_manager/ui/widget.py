@@ -43,12 +43,16 @@ class ManagerWidget(QtWidgets.QWidget):
         download_button = QtWidgets.QPushButton("下载数据")
         download_button.clicked.connect(self.download_data)
 
+        clear_button = QtWidgets.QPushButton("清空数据")
+        clear_button.clicked.connect(self.clear_data)
+
         hbox1 = QtWidgets.QHBoxLayout()
         hbox1.addWidget(refresh_button)
         hbox1.addStretch()
         hbox1.addWidget(import_button)
         hbox1.addWidget(update_button)
         hbox1.addWidget(download_button)
+        hbox1.addWidget(clear_button)
 
         hbox2 = QtWidgets.QHBoxLayout()
         hbox2.addWidget(self.tree)
@@ -298,6 +302,8 @@ class ManagerWidget(QtWidgets.QWidget):
         if n != dialog.Accepted:
             return
         start, end = dialog.get_date_range()
+        start = datetime.combine(start, datetime.min.time())
+        end = datetime.combine(end, datetime.min.time())
 
         bars = self.engine.load_bar_data(
             symbol,
@@ -312,11 +318,11 @@ class ManagerWidget(QtWidgets.QWidget):
 
         for row, bar in enumerate(bars):
             self.table.setItem(row, 0, DataCell(bar.datetime.strftime("%Y-%m-%d %H:%M:%S")))
-            self.table.setItem(row, 1, DataCell(str(bar.open_price)))
-            self.table.setItem(row, 2, DataCell(str(bar.high_price)))
-            self.table.setItem(row, 3, DataCell(str(bar.low_price)))
-            self.table.setItem(row, 4, DataCell(str(bar.close_price)))
-            self.table.setItem(row, 5, DataCell(str(bar.volume)))
+            self.table.setItem(row, 1, DataCell(f"{bar.open_price:.2f}"))
+            self.table.setItem(row, 2, DataCell(f"{bar.high_price:.2f}"))
+            self.table.setItem(row, 3, DataCell(f"{bar.low_price:.2f}"))
+            self.table.setItem(row, 4, DataCell(f"{bar.close_price:.2f}"))
+            self.table.setItem(row, 5, DataCell(str(int(bar.volume))))
             self.table.setItem(row, 6, DataCell(str(bar.open_interest)))
 
     def delete_data(
@@ -386,6 +392,11 @@ class ManagerWidget(QtWidgets.QWidget):
         """"""
         dialog = DownloadDialog(self.engine)
         dialog.exec_()
+    
+    def clear_data(self) -> None:
+        """"""
+        dialog = DeleteDialog(self.engine)
+        dialog.exec_()  
 
     def show(self) -> None:
         """"""
@@ -526,6 +537,39 @@ class ImportDialog(QtWidgets.QDialog):
             self.file_edit.setText(filename)
 
 
+class DeleteDialog(QtWidgets.QDialog):
+    """"""
+
+    def __init__(self, engine: ManagerEngine, parent=None):
+        """"""
+        super().__init__()
+
+        self.engine = engine
+
+        self.setWindowTitle("清空所有数据")
+        self.setFixedWidth(300)
+
+        self.setWindowFlags(
+            (self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
+            & ~QtCore.Qt.WindowMaximizeButtonHint)
+
+        button_confirm = QtWidgets.QPushButton("确认删除")
+        button_confirm.clicked.connect(self.confirm)
+        button_cancel = QtWidgets.QPushButton("取消")
+        button_cancel.clicked.connect(self.cancel)
+
+        form = QtWidgets.QFormLayout()
+        form.addRow(button_confirm)
+        form.addRow(button_cancel)
+        self.setLayout(form)
+
+    def confirm(self):
+        self.engine.clear_data()
+
+    def cancel(self):
+        pass
+
+
 class DownloadDialog(QtWidgets.QDialog):
     """"""
 
@@ -590,3 +634,4 @@ class DownloadDialog(QtWidgets.QDialog):
         else:
             count = self.engine.download_bar_data(symbol, exchange, interval, start)
         QtWidgets.QMessageBox.information(self, "下载结束", f"下载总数据量：{count}条")
+QtWidgets.QMessageBox()

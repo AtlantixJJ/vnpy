@@ -1318,9 +1318,12 @@ def load_bar_data(
     end: datetime
 ):
     """"""
-    return database_manager.load_bar_data(
-        symbol, exchange, interval, start, end
-    )
+    #v = (symbol, exchange, interval, start, end)
+    #print(f"Here: {v}")
+    bars = database_manager.load_bar_data(
+        symbol, exchange, interval, start, end)
+    #print(len(bars))
+    return bars
 
 
 @lru_cache(maxsize=999)

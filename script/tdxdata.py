@@ -24,7 +24,7 @@ for data_dir in ["szlday", "shlday"]:
             df = reader.get_df(f)
         except:
             print(f"!> skip {f}")
-        name = f[f.rfind('/') + 1:-4]
+        name = f[-10:-4]
         data_manager.import_data_from_dict(
             reader=df,
             symbol=name,

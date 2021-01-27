@@ -367,9 +367,14 @@ class MongoManager(BaseDatabaseManager):
         DbTickData.objects(symbol=symbol).delete()
         DbBarData.objects(symbol=symbol).delete()
 
+    def clear_data(self):
+        DbTickData.objects().delete()
+        DbBarData.objects().delete()
 
 def convert_tz(dt: datetime):
     """"""
+    #if not hasattr(dt, "tzinfo"):
+    #    dt = dt.tz_localize('utc')
     if not dt.tzinfo:
         dt = LOCAL_TZ.localize(dt)
     dt = dt.astimezone(DB_TZ)

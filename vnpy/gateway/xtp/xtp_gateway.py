@@ -125,19 +125,18 @@ CHINA_TZ = pytz.timezone("Asia/Shanghai")
 symbol_name_map: Dict[str, str] = {}
 symbol_pricetick_map: Dict[str, float] = {}
 
-
 class XtpGateway(BaseGateway):
 
     default_setting: Dict[str, Any] = {
-        "账号": "",
-        "密码": "",
+        "账号": "53191001561",
+        "密码": "IKJAHv6O",
         "客户号": 1,
-        "行情地址": "",
-        "行情端口": 0,
-        "交易地址": "",
-        "交易端口": 0,
+        "行情地址": "120.27.164.138",
+        "行情端口": 6002,
+        "交易地址": "120.27.164.69",
+        "交易端口": 6001,
         "行情协议": ["TCP", "UDP"],
-        "授权码": ""
+        "授权码": "b8aa7173bba3470e390d787219b2112e"
     }
 
     exchanges: List[Exchange] = list(EXCHANGE_VT2XTP.keys())

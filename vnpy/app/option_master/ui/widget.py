@@ -559,9 +559,9 @@ class OptionManualTrader(QtWidgets.QWidget):
 
         self.lp_label.setText(f"{tick.last_price:.{price_digits}f}")
         self.bp1_label.setText(f"{tick.bid_price_1:.{price_digits}f}")
-        self.bv1_label.setText(str(tick.bid_volume_1))
+        self.bv1_label.setText(str(int(tick.bid_volume_1)))
         self.ap1_label.setText(f"{tick.ask_price_1:.{price_digits}f}")
-        self.av1_label.setText(str(tick.ask_volume_1))
+        self.av1_label.setText(str(int(tick.ask_volume_1)))
 
         if tick.pre_close:
             r = (tick.last_price / tick.pre_close - 1) * 100
