@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from tzlocal import get_localzone
 
 from vnpy.event import EventEngine, Event
-from vnpy.chart import ChartWidget, CandleItem, VolumeItem, MAItem, EstAmountItem
+from vnpy.chart import *
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import QtWidgets, QtCore
 from vnpy.trader.event import EVENT_TICK
@@ -62,7 +62,7 @@ class ChartWizardWidget(QtWidgets.QWidget):
         chart.add_plot("candle", hide_x_axis=True)
         chart.add_plot("amount", maximum_height=200)
         chart.add_item(CandleItem, "candle", "candle")
-        chart.add_item(MAItem, "MA5", "candle", N=5)
+        chart.add_item(WaveItem, "wave", "candle")
         chart.add_item(EstAmountItem, "amount", "amount")
         chart.add_cursor()
         return chart
@@ -87,7 +87,7 @@ class ChartWizardWidget(QtWidgets.QWidget):
 
         # Query history data
         end = datetime.now(get_localzone())
-        start = end - timedelta(days=250)
+        start = end - timedelta(days=1000)
 
         self.chart_engine.query_history(
             vt_symbol,

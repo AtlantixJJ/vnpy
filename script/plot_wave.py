@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import utils
+from alg import get_waves
+
 
 os.chdir(path)
 bars = database_manager.load_bar_data_s(
@@ -19,69 +21,19 @@ WIN = 21 # in a month: 31 * 250 / 365
 df = utils.bars_to_df(bars)
 v = df['close_price']
 
-def get_waves(v, T1=0.2, T2=0.05, verbose=False):
-    waves = []
-    last_wave_idx = 0
-    wave_type = 0
-    lmax, lmin = v[0], v[0]
-    lmaxi, lmini = 0, 0
-
-    for i in range(1, v.shape[0]):
-        if lmax < v[i]:
-            lmax = v[i]
-            lmaxi = i
-        if lmin > v[i]:
-            lmin = v[i]
-            lmini = i
-        
-        if wave_type == 0 and v[i] > lmin * (1 + T1):
-            if verbose:
-                print(f"=> Start inc {lmin}({lmini}) -> {v[i]}({i})")
-            wave_type = 1
-            last_wave_idx = lmini
-            lmax = v[i]
-            lmaxi = i
-
-        elif wave_type == 0 and v[i] < lmax * (1 - T1):
-            if verbose:
-                print(f"=> Start dec {lmax}({lmaxi}) -> {v[i]}({i})")
-            wave_type = -1
-            last_wave_idx = lmaxi
-            lmin = v[i]
-            lmini = i
-
-        elif wave_type == 1 and v[i] < lmax * (1 - T2):
-            if verbose:
-                print(f"=> Inc -> Dec, wave {v[last_wave_idx]}({last_wave_idx}) ->{lmax}({lmaxi})")
-            waves.append([last_wave_idx, lmaxi - 1, wave_type])
-            last_wave_idx = lmaxi
-            wave_type = 0
-            lmin = v[i]
-            lmini = i
-
-        elif wave_type == -1 and v[i] > lmin * (1 + T2):
-            if verbose:
-                print(f"=> Dec -> Inc, wave {v[last_wave_idx]}({last_wave_idx}) ->{v[lmini - 1]}({lmini - 1})")
-            waves.append([last_wave_idx, lmini - 1, wave_type])
-            last_wave_idx = lmini
-            wave_type = 0
-            lmax = v[i]
-            lmaxi = i
-
-    waves.append([last_wave_idx, v.shape[0] - 1, wave_type])
-    return waves
-
-waves = get_waves(v)
-st, ed = 2000, 2500
+waves = get_waves(v, T1=0.15, T2=0.05, verbose=True)
+#print(waves)
+st, ed = 0, 1000
 fig = plt.figure(figsize=(10, 5))
 x = np.arange(0, v.shape[0])
 plt.scatter(
     x[st:ed],
     v[st:ed], s=10)
 plt.plot(x[st:ed], v[st:ed])
-for lidx, cidx, t in waves:
-    if cidx < st or lidx > ed or cidx > ed: continue
-    c = 'r' if t == 1 else 'g'
-    plt.plot([lidx, cidx], [v[lidx], v[cidx]], c)
+for x1, y1, x2, y2, t in waves:
+    if x2 < st or x1 > ed or x2 > ed: continue
+    if t == 0: continue
+    c = {0: 'blue', 1: 'red', -1: 'green'}[t]
+    plt.plot([x1, x2], [y1, y2], c)
 plt.savefig("res.png")
 plt.close()

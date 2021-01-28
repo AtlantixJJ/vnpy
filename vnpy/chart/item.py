@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import List, Dict, Tuple
 from collections import deque
+import numpy as np
 
 import pyqtgraph as pg
 
@@ -9,8 +10,9 @@ from vnpy.trader.object import BarData
 
 from .base import BLACK_COLOR, UP_COLOR, DOWN_COLOR, PEN_WIDTH, BAR_WIDTH
 from .manager import BarManager
+import alg
 
-
+# 000001.SZSE
 class ChartItem(pg.GraphicsObject):
     """"""
 
@@ -211,6 +213,104 @@ class MAItem(ChartItem):
         return min_price, max_price
 
 
+class WaveItem(ChartItem):
+    """"""
+
+    def __init__(self, manager: BarManager, T1=0.2, T2=0.08):
+        """"""
+        super().__init__(manager)
+        self.T1 = T1
+        self.T2 = T2
+
+    def _draw_bar_picture(self, ix: int, bar: BarData) -> QtGui.QPicture:
+        """"""
+        # Create objects
+        line = QtGui.QPicture()
+        painter = QtGui.QPainter(line)
+        N = len(self._manager._bars)
+
+        v = np.array([b.close_price for b in self._manager.get_all_bars()])
+        self.waves = alg.get_waves(v, self.T1, self.T2)
+        for x1, y1, x2, y2, t in self.waves:
+            if t == 0:
+                continue
+            if t == 1:
+                # Set painter color
+                painter.setPen(self._up_pen)
+                painter.setBrush(self._black_brush)
+            if t == -1:
+                painter.setPen(self._down_pen)
+                painter.setBrush(self._down_brush)
+            painter.drawLine(
+                QtCore.QPointF(x1, y1),
+                QtCore.QPointF(x2, y2))
+
+        # Finish
+        painter.end()
+        return line
+
+    def boundingRect(self) -> QtCore.QRectF:
+        """"""
+        min_price, max_price = self._manager.get_price_range()
+        rect = QtCore.QRectF(
+            0,
+            min_price,
+            len(self._bar_picutures),
+            max_price - min_price
+        )
+        return rect
+
+    def get_y_range(self, min_ix: int = None, max_ix: int = None) -> Tuple[float, float]:
+        """
+        Get range of y-axis with given x-axis range.
+
+        If min_ix and max_ix not specified, then return range with whole data set.
+        """
+        min_price, max_price = self._manager.get_price_range(min_ix, max_ix)
+        return min_price, max_price
+
+    def get_info_text(self, ix: int) -> str:
+        """
+        Get information text to show by cursor.
+        """
+        bar = self._manager.get_bar(ix)
+        for i, (x1, y1, x2, y2, t) in enumerate(self.waves):
+            if x1 <= ix and ix <= x2:
+                bar_st = self._manager.get_bar(x1)
+                bar_ed = self._manager.get_bar(x2)
+                st_time = bar_st.datetime.strftime("%Y-%m-%d")
+                ed_time = bar_ed.datetime.strftime("%Y-%m-%d")
+                words = [
+                    f"Wave {i}: {bar_st.close_price:.2f} -> {bar_ed.close_price:.2f}",
+                    f"Start {st_time}",
+                    f"End {ed_time}"]
+        if bar:
+            words = [
+                "Date",
+                bar.datetime.strftime("%Y-%m-%d"),
+                "",
+                "Time",
+                bar.datetime.strftime("%H:%M"),
+                "",
+                "Open",
+                f"{bar.open_price:.2f}",
+                "",
+                "High",
+                f"{bar.high_price:.2f}",
+                "",
+                "Low",
+                f"{bar.low_price:.2f}",
+                "",
+                "Close",
+                f"{bar.close_price:.2f}"
+            ]
+            text = "\n".join(words)
+        else:
+            text = ""
+
+        return text
+
+
 class CandleItem(ChartItem):
     """"""
 
@@ -380,6 +480,8 @@ class VolumeItem(ChartItem):
 
 
 def est_amount(bar):
+    if bar is None:
+        return 0
     return (bar.open_price + bar.close_price) / 2 * bar.volume * 100
 
 
