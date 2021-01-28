@@ -24,13 +24,16 @@ for data_dir in ["szlday", "shlday"]:
     files.sort()
     for f in tqdm(files):
         name = f[-10:-4]
-        if name in symbols:
+        if name in symbols or name[0] not in "036":
             print(f"=> Skip {name}")
             continue
         try:
             df = reader.get_df(f)
         except:
             print(f"!> skip {f}")
+        if df.shape[0] <= 100:
+            print(f"=> Skip {name}. Its shape is {df.shape}")
+            continue
         data_manager.import_data_from_dict(
             reader=df,
             symbol=name,

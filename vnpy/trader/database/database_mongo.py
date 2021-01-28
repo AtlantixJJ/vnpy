@@ -355,10 +355,14 @@ class MongoManager(BaseDatabaseManager):
         """
         Delete all bar data with given symbol + exchange + interval.
         """
+        if type(exchange) is not str:
+            exchange = exchange.value
+        if type(interval) is not str:
+            interval = interval.value
         count = DbBarData.objects(
             symbol=symbol,
-            exchange=exchange.value,
-            interval=interval.value
+            exchange=exchange,
+            interval=interval
         ).delete()
 
         return count
