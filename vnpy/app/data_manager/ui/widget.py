@@ -86,8 +86,12 @@ class ManagerWidget(QtWidgets.QWidget):
     def init_child(self) -> None:
         """"""
         self.minute_child = QtWidgets.QTreeWidgetItem()
-        self.minute_child.setText(0, "分钟线")
+        self.minute_child.setText(0, "1分钟线")
         self.tree.addTopLevelItem(self.minute_child)
+
+        self.five_minute_child = QtWidgets.QTreeWidgetItem()
+        self.five_minute_child.setText(0, "5分钟线")
+        self.tree.addTopLevelItem(self.five_minute_child)
 
         self.hour_child = QtWidgets.QTreeWidgetItem(self.tree)
         self.hour_child.setText(0, "小时线")
@@ -124,6 +128,8 @@ class ManagerWidget(QtWidgets.QWidget):
 
             if interval == Interval.MINUTE.value:
                 self.minute_child.removeChild(item)
+            elif interval == Interval.FIVEMIN.value:
+                self.five_minute_child.removeChild(item)
             elif interval == Interval.HOUR.value:
                 self.hour_child.removeChild(item)
             else:
@@ -151,6 +157,8 @@ class ManagerWidget(QtWidgets.QWidget):
 
                 if d["interval"] == Interval.MINUTE.value:
                     self.minute_child.addChild(item)
+                elif d["interval"] == Interval.FIVEMIN.value:
+                    self.five_minute_child.addChild(item)
                 elif d["interval"] == Interval.HOUR.value:
                     self.hour_child.addChild(item)
                 else:
@@ -196,6 +204,7 @@ class ManagerWidget(QtWidgets.QWidget):
             item.setText(6, d["end"].strftime("%Y-%m-%d %H:%M:%S"))
 
         self.minute_child.setExpanded(True)
+        self.five_minute_child.setExpanded(True)
         self.hour_child.setExpanded(True)
         self.daily_child.setExpanded(True)
 

@@ -163,5 +163,6 @@ class Interval(Enum):
     MINUTE = "1m"
     HOUR = "1h"
     DAILY = "d"
+    FIVEMIN = "5m"
     WEEKLY = "w"
     TICK = "tick"
