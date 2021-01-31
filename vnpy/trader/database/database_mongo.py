@@ -197,6 +197,11 @@ class DbTickData(Document):
 
 class MongoManager(BaseDatabaseManager):
 
+    def fast_index(self, fpath="data/index.csv"):
+        """Return the fast index of the database"""
+        import pandas
+        return pandas.read_csv(fpath)
+
     def load_bar_data(
         self,
         symbol: str,
@@ -374,6 +379,7 @@ class MongoManager(BaseDatabaseManager):
     def clear_data(self):
         DbTickData.objects().delete()
         DbBarData.objects().delete()
+
 
 def convert_tz(dt: datetime):
     """"""

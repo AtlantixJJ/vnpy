@@ -11,9 +11,12 @@ from tqdm import tqdm
 import utils
 from alg import get_waves
 
+
 def normalize(x):
     return x / x[:, :, 0:1]
     
+
+
 
 os.chdir(path)
 
@@ -21,15 +24,13 @@ WIN_SIZE = 10 # two weeks
 SHIFT_PORTION = 3
 FEATURE_KEYS = ['open_price', 'close_price', 'high_price', 'low_price', 'volume']
 
-print("=> Loading all bar data")
-binfos = database_manager.get_bar_data_statistics()
-
-print("=> Forging data")
+binfos = database_manager.fast_index().values
+binfos = [b for b in binfos if b[3] == 'd'] # day line only
 data_keys = ["buy", "sell", "hold"]
 dic = {k: {} for k in data_keys}
 
 for binfo in tqdm(binfos):
-    symbol, exchange = binfo['symbol'], binfo['exchange']
+    _, symbol, exchange, interval, _ = binfo
     vt_symbol = f"{symbol}.{exchange}"
     for key in data_keys:
         dic[key][vt_symbol] = {}
@@ -81,4 +82,4 @@ for binfo in tqdm(binfos):
         dic["sell"][vt_symbol][year] = normalize(np.array(sell_points))
         dic["hold"][vt_symbol][year] = normalize(np.array(hold_points))
     
-np.save("buy_point.npy", dic)
+np.save("results/buy_point.npy", dic)
