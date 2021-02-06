@@ -18,15 +18,13 @@ from lib.alg import get_waves
 
 
 def normalize(x):
-    return x / x[:, :, 0:1]
-    
-
-
+    #return x / (1e-9 + x.mean(2, keepdims=True))
+    return x / (1e-9 + x[:, :, 0:1])
 
 os.chdir(path)
 
 WIN_SIZE = 10 # two weeks
-SHIFT_PORTION = 3
+SHIFT_PORTION = 5
 FEATURE_KEYS = ['open_price', 'close_price', 'high_price', 'low_price', 'volume']
 
 binfos = utils.fast_index().values
@@ -53,10 +51,10 @@ for idx, binfo in enumerate(tqdm(binfos)):
     N = df.shape[0]
 
     # get waves
-    waves = get_waves(df['close_price'], T1=0.20, T2=0.10)
+    waves = get_waves(df['close_price'], T1=0.30, T2=0.10)
     inter_waves = [[waves[i][2] + 1, waves[i+1][0] - 1] for i in range(len(waves) - 1)]
 
-    points = {"buy": {}, "hold": {}, "sell": {}}
+    points = {"buy": {}, "hold": {}, "sell": {}, "empty": {}}
     #times = {"buy": [], "hold": [], "sell": []}
     for year in range(2000, 2022):
         for key in points.keys():
@@ -65,7 +63,7 @@ for idx, binfo in enumerate(tqdm(binfos)):
     for x1, y1, x2, y2, t in waves:
         # shift a portion around the starting point
         S = (x2 - x1) // SHIFT_PORTION
-        win_st = max(x1 - S, WIN_SIZE)
+        win_st = max(x1, WIN_SIZE)
         win_ed = max(min(x1 + S, N), WIN_SIZE)
         for i in range(win_st + 1, win_ed + 1):
             d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
@@ -74,7 +72,7 @@ for idx, binfo in enumerate(tqdm(binfos)):
             #times["buy"].append(df.index[i - WIN_SIZE : i])
         
         win_st = max(x2 - S, WIN_SIZE)
-        win_ed = min(x2 + S, N)
+        win_ed = min(x2, N)
         for i in range(win_st + 1, win_ed + 1):
             d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
             year = str(df.index[i - WIN_SIZE].year)
@@ -93,16 +91,18 @@ for idx, binfo in enumerate(tqdm(binfos)):
         for i in range(st + 1, ed + 1):
             d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
             year = str(df.index[i - WIN_SIZE].year)
-            points["hold"][year].append(d)
-            #times["hold"].append(df.index[i - WIN_SIZE : i])
-
+            points["empty"][year].append(d)
+            
     for key in points.keys():
         for year in points[key]:
             if len(points[key][year]) == 0:
                 continue
             x = normalize(np.array(points[key][year]))
             dic[key][vt_symbol][year] = x
-            #dic[key][vt_symbol][year] = np.array(times[key])
-    if idx % 100 == 0:
-        np.save("data/buy_point.npy", dic)
-np.save("data/buy_point.npy", dic)
+
+    if (idx + 1) % 500 == 0:
+        I = (idx + 1) // 500
+        np.save(f"data/buy_point/share_{I}.npy", dic)
+        del dic
+        dic = {k: {} for k in data_keys}
+np.save(f"data/buy_point/share_{I + 1}.npy", dic)
