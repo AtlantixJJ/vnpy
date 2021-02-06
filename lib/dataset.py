@@ -49,9 +49,11 @@ def load_year(res, data_dir="data/buy_point", years=[2000]):
         print(f"=> Loading {fpath}")
         dic = np.load(fpath, allow_pickle=True)[()]
         for data_key in dic.keys():
-            res[data_key] = {}
+            if data_key not in res:
+                res[data_key] = {}
             for symbol in dic[data_key]:
-                res[data_key][symbol] = {}
+                if symbol not in res[data_key]:
+                    res[data_key][symbol] = {}
                 for year in years:
                     year = str(year)
                     if year not in dic[data_key][symbol]:
