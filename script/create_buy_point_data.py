@@ -98,7 +98,8 @@ for idx, binfo in enumerate(tqdm(binfos)):
             if len(points[key][year]) == 0:
                 continue
             x = normalize(np.array(points[key][year]))
-            dic[key][vt_symbol][year] = x
+            if np.abs(x).max() < 100: # filter error data
+                dic[key][vt_symbol][year] = x
 
     if (idx + 1) % 500 == 0:
         I = (idx + 1) // 500

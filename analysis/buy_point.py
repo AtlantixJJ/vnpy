@@ -20,7 +20,7 @@ for i, (x, y) in enumerate(dm.train_dataloader()):
     p = x[0, 1]
     v = x[0, 4]
     marks.fill(0)
-    a = v[1:] > v[:-1]
+    a = v[1:] < v[:-1]
     marks[:a.shape[0]][a] = 1
     plot_dict({
         f"price + {int(y[0])}" : {"value": p, "chart": "line"},

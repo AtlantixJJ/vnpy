@@ -3,6 +3,7 @@ lightning_logs
 res.png
 data
 *.pyc
+res*.png
 *.pyo
 *.egg-info/
 

@@ -52,6 +52,10 @@ class MLP(pl.LightningModule):
             on_step=False, on_epoch=True)
         self.log('train_recall', R,
             on_step=False, on_epoch=True)
+        if c > 100:
+            print(x.shape, x.min(), x.max(), y.shape, y.min(), y.max())
+            input()
+            return c.detach()
         return c
 
     def validation_step(self, batch, batch_idx):
