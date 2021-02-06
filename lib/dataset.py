@@ -75,6 +75,7 @@ class BuyPoint(pl.LightningDataModule):
         self.all_symbols = np.array(list(self.dic[k].keys()))
         N = self.all_symbols.shape[0]
         self.N = N
+        print(self.N, self.all_symbols[:5])
 
         self.train_symbols, self.val_symbols, self.test_symbols = \
             split(self.all_symbols, 0.6, 0.2)

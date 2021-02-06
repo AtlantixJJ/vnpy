@@ -29,7 +29,7 @@ FEATURE_KEYS = ['open_price', 'close_price', 'high_price', 'low_price', 'volume'
 
 binfos = utils.fast_index().values
 binfos = [b for b in binfos if b[3] == 'd'] # day line only
-data_keys = ["buy", "sell", "hold"]
+data_keys = ["buy", "sell", "hold", "empty"]
 dic = {k: {} for k in data_keys}
 buy_count = sell_count = hold_count = 0
 for idx, binfo in enumerate(tqdm(binfos)):
