@@ -28,11 +28,15 @@ for i, (x, y) in enumerate(dm.train_dataloader()):
     }, f"res{i}.png", x.shape[2])
     if i > 4:
         break
-
-learner = MLP(in_dim=WIN_SIZE * FEAT_SIZE, n_class=3,
-    dims=[64, 128, 256, 128, 256, 512])
+print(str(dm))
+learner = MLP(in_dim=WIN_SIZE * FEAT_SIZE,
+    n_class=len(dm.label_keys),
+    labels=dm.label_keys,
+    dims=[256, 256, 256, 256, 256, 256, 256, 256])
 trainer = pl.Trainer(
     max_epochs=100,
     progress_bar_refresh_rate=1,
+    num_sanity_val_steps=-1,
     track_grad_norm=2)
 trainer.fit(learner, dm)
+trainer.test(learner, dm)

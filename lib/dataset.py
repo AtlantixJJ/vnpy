@@ -63,8 +63,7 @@ def load_year(res, data_dir="data/buy_point", years=[2000]):
 
 class BuyPoint(pl.LightningDataModule):
     def __init__(self,
-                 data_dir="data/buy_point",
-                 label_keys=["buy", "sell", "hold"]):
+                 data_dir="data/buy_point"):
         """Create training and validation split from raw data.
         Args:
             dic : dic[symbol][year]
@@ -72,8 +71,8 @@ class BuyPoint(pl.LightningDataModule):
         super().__init__()
         self.dic = {}
         load_year(self.dic, data_dir, years=range(2000, 2005))
-        self.label_keys = label_keys
-        k = label_keys[0]
+        self.label_keys = list(self.dic.keys())
+        k = self.label_keys[0]
         self.all_symbols = np.array(list(self.dic[k].keys()))
         N = self.all_symbols.shape[0]
         self.N = N
@@ -109,17 +108,20 @@ class BuyPoint(pl.LightningDataModule):
 
     def __str__(self):
         s = "=> Buy Point Dataset\n"
+        s += f"=> num classes is {len(self.label_keys)}"
+        t = ",".join(self.label_keys[:5])
+        s += f", first five labels: {t}\n"
         s += f"=> Total: {self.N}, train({self.N_train}) : val({self.N_val}) : test({self.N_test})\n"
         return s
 
-    def train_dataloader(self, batch_size=128):
+    def train_dataloader(self, batch_size=64):
         return DataLoader(self.train_ds,
             batch_size=batch_size, shuffle=True)
     
-    def val_dataloader(self, batch_size=128):
+    def val_dataloader(self, batch_size=64):
         return DataLoader(self.val_ds,
-            batch_size=batch_size, shuffle=True)
+            batch_size=batch_size, shuffle=False)
     
-    def test_dataloader(self, batch_size=128):
+    def test_dataloader(self, batch_size=64):
         return DataLoader(self.test_ds,
-            batch_size=batch_size, shuffle=True)
+            batch_size=batch_size, shuffle=False)

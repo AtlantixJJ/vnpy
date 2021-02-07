@@ -52,7 +52,12 @@ for idx, binfo in enumerate(tqdm(binfos)):
 
     # get waves
     waves = get_waves(df['close_price'], T1=0.30, T2=0.10)
-    inter_waves = [[waves[i][2] + 1, waves[i+1][0] - 1] for i in range(len(waves) - 1)]
+    inter_waves = []
+    for i in range(len(waves) - 1):
+        bg, ed = waves[i][2] + 1, waves[i+1][0] - 1
+        if ed - bg > 2:
+            continue
+        inter_waves.append((bg, ed))
 
     points = {"buy": {}, "hold": {}, "sell": {}, "empty": {}}
     #times = {"buy": [], "hold": [], "sell": []}

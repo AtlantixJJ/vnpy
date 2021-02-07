@@ -7,12 +7,13 @@ from pytorch_lightning.metrics.functional import precision_recall
 
 
 class MLP(pl.LightningModule):
-    def __init__(self, in_dim=5, n_class=3, dims=[]):
+    def __init__(self, in_dim=5, n_class=4, labels=[], dims=[]):
         super().__init__()
         self.n_layers = len(dims) + 1
         self.dims = dims
         self.in_dim = in_dim
         self.n_class = n_class
+        self.labels = labels
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.build()
         self.train_acc = pl.metrics.Accuracy()
@@ -46,26 +47,34 @@ class MLP(pl.LightningModule):
         x = x.view(x.shape[0], -1).float() - 1
         y = self(x)
         c = self.loss_fn(y, y_true.long())
-        P, R = precision_recall(y.argmax(1), y_true)
-
-        self.log('train_precision', P,
+        P, R = precision_recall(y.argmax(1), y_true,
+                num_classes=len(self.labels),
+                class_reduction="none")
+        for i in range(len(self.labels)):
+            self.log(f'train/P/{self.labels[i]}', P[i],
+                on_step=False, on_epoch=True)
+            self.log(f'train/R/{self.labels[i]}', R[i],
+                on_step=False, on_epoch=True)
+        self.log(f'train/P', P.mean(),
             on_step=False, on_epoch=True)
-        self.log('train_recall', R,
+        self.log(f'train/R', R.mean(),
             on_step=False, on_epoch=True)
-        if c > 100:
-            print(x.shape, x.min(), x.max(), y.shape, y.min(), y.max())
-            input()
-            return c.detach()
         return c
 
     def validation_step(self, batch, batch_idx):
         x, y_true = batch
-        x = x.view(x.shape[0], -1).float() - 1
-        y = self(x).argmax(1)
-        P, R = precision_recall(y, y_true)
-        self.log('val_precision', P,
+        y = self(x.view(x.shape[0], -1).float() - 1).argmax(1)
+        P, R = precision_recall(y, y_true,
+            num_classes=len(self.labels),
+            class_reduction="none")
+        for i in range(len(self.labels)):
+            self.log(f'val/P/{self.labels[i]}', P[i],
+                on_step=False, on_epoch=True)
+            self.log(f'val/R/{self.labels[i]}', R[i],
+                on_step=False, on_epoch=True)
+        self.log(f'val/P', P.mean(),
             on_step=False, on_epoch=True)
-        self.log('val_recall', R,
+        self.log(f'val/R', R.mean(),
             on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
