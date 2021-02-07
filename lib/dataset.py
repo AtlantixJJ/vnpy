@@ -37,6 +37,12 @@ def tensor_from_dict2d(dic, keys1, keys2):
     return x
 
 
+def balance_class(xs, ys):
+    """Balancing each category. (not implemented)"""
+    return xs, ys
+
+
+
 def load_year(res, data_dir="data/buy_point", years=[2000]):
     files = glob.glob(f"{data_dir}/share*")
     N = len(files)
@@ -74,9 +80,8 @@ class BuyPoint(pl.LightningDataModule):
         self.label_keys = list(self.dic.keys())
         k = self.label_keys[0]
         self.all_symbols = np.array(list(self.dic[k].keys()))
-        N = self.all_symbols.shape[0]
-        self.N = N
-        print(self.N, self.all_symbols[:5])
+        N_symbols = self.all_symbols.shape[0]
+        self.N_symbols = N_symbols
 
         self.train_symbols, self.val_symbols, self.test_symbols = \
             split(self.all_symbols, 0.6, 0.2)
@@ -97,7 +102,9 @@ class BuyPoint(pl.LightningDataModule):
                 if val is not None:
                     x.append(val)
                     y.append(torch.Tensor(val.shape[:1]).fill_(i))
+                    setattr(self, f"N_{split}_{k}", y[-1].shape[0])
             if len(x) > 0:
+                x, y = balance_class(x, y)
                 x = torch.cat(x)
                 y = torch.cat(y)
                 setattr(self, f"N_{split}", x.shape[0])
@@ -106,12 +113,33 @@ class BuyPoint(pl.LightningDataModule):
                 print("!> Empty dataset!")
                 setattr(self, f"N_{split}", 0)
 
+        self.N = self.N_train + self.N_val + self.N_test
+        self.train_data_ratio = float(self.N_train) / self.N * 100
+        self.val_data_ratio = float(self.N_val) / self.N * 100
+        self.test_data_ratio = float(self.N_test) / self.N * 100
+
     def __str__(self):
         s = "=> Buy Point Dataset\n"
         s += f"=> num classes is {len(self.label_keys)}"
-        t = ",".join(self.label_keys[:5])
-        s += f", first five labels: {t}\n"
-        s += f"=> Total: {self.N}, train({self.N_train}) : val({self.N_val}) : test({self.N_test})\n"
+        t = ",".join(self.label_keys)
+        s += f", {t}\n"
+        r1 = self.train_data_ratio
+        r2 = self.val_data_ratio
+        r3 = self.test_data_ratio
+        s += f"=> Total: {self.N}, train({r1:.2f}%) : val({r2:.2f}%) : test({r3:.2f}%)\n"
+
+        t1 = ""
+        for split in ["train", "val", "test"]:
+            N = getattr(self, f"N_{split}")
+            t = ""
+            for i, k in enumerate(self.label_keys):
+                if not hasattr(self, f"N_{split}_{k}"):
+                    continue
+                M = getattr(self, f"N_{split}_{k}")
+                r = float(M) / N * 100
+                t += f"{k}({M}) {r:.2f}%, "
+            t1 += f"=> {split}({N}): " +  t[:-2] + "\n"
+        s += t1
         return s
 
     def train_dataloader(self, batch_size=64):

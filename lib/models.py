@@ -77,5 +77,21 @@ class MLP(pl.LightningModule):
         self.log(f'val/R', R.mean(),
             on_step=False, on_epoch=True)
 
+    def test_step(self, batch, batch_idx):
+        x, y_true = batch
+        y = self(x.view(x.shape[0], -1).float() - 1).argmax(1)
+        P, R = precision_recall(y, y_true,
+            num_classes=len(self.labels),
+            class_reduction="none")
+        for i in range(len(self.labels)):
+            self.log(f'test/P/{self.labels[i]}', P[i],
+                on_step=False, on_epoch=True)
+            self.log(f'test/R/{self.labels[i]}', R[i],
+                on_step=False, on_epoch=True)
+        self.log(f'test/P', P.mean(),
+            on_step=False, on_epoch=True)
+        self.log(f'test/R', R.mean(),
+            on_step=False, on_epoch=True)
+
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters())

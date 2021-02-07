@@ -36,7 +36,7 @@ learner = MLP(in_dim=WIN_SIZE * FEAT_SIZE,
 trainer = pl.Trainer(
     max_epochs=100,
     progress_bar_refresh_rate=1,
-    num_sanity_val_steps=-1,
     track_grad_norm=2)
+res = trainer.test(learner, dm.val_dataloader())
 trainer.fit(learner, dm)
-trainer.test(learner, dm)
+res = trainer.test(learner, dm.test_dataloader())
