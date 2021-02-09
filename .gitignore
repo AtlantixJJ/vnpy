@@ -6,6 +6,7 @@ data
 res*.png
 *.pyo
 *.egg-info/
+expr
 
 # Jupyter
 .ipynb_checkpoints

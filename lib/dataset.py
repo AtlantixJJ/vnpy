@@ -13,14 +13,20 @@ class BuyPoint(pl.LightningDataModule):
                  data_dir="data/buy_point",
                  train_years="2000-2005",
                  val_years="2000-2005",
-                 test_years="2020-2020"):
+                 test_years="2006-2006"):
         """Create training and validation split from raw data.
         Args:
             dic : dic[symbol][year]
         """
         super().__init__()
         self.dic = {}
-        load_year(self.dic, data_dir, years=range(2000, 2005))
+        self.train_years = parse_years(train_years)
+        self.val_years = parse_years(val_years)
+        self.test_years = parse_years(test_years)
+        self.all_years = list(set(self.train_years + \
+            self.val_years + self.test_years))
+
+        load_year(self.dic, data_dir, years=self.all_years)
         self.label_keys = list(self.dic.keys())
         k = self.label_keys[0]
         self.all_symbols = np.array(list(self.dic[k].keys()))
@@ -31,12 +37,6 @@ class BuyPoint(pl.LightningDataModule):
             split(self.all_symbols, 0.7, 0.3)
         self.test_symbols = self.all_symbols
         
-        self.train_years = parse_years(train_years)
-        self.val_years = parse_years(val_years)
-        self.test_years = parse_years(test_years)
-        print(self.train_years)
-        print(self.val_years)
-        print(self.test_years)
         self.create_datasets()
 
     def create_datasets(self):
@@ -46,11 +46,12 @@ class BuyPoint(pl.LightningDataModule):
                 val = tensor_from_dict2d(
                     dic=self.dic[k],
                     keys1=getattr(self, f"{split}_symbols"),
-                    keys2=getattr(self, f"{split}_years"))
+                    keys2=getattr(self, f"{split}_years"),
+                    delete=True)
                 if val is not None:
                     x.append(val)
                     y.append(torch.Tensor(val.shape[:1]).fill_(i))
-                    
+
             if len(x) > 0:
                 x, y = balance_class(x, y)
                 for i in range(len(y)):

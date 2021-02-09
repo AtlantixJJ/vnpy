@@ -130,23 +130,28 @@ def split(data, train_ratio, val_ratio, seed=None):
     return data[train_indice], data[val_indice], data[test_indice]
 
 
-def tensor_from_dict2d(dic, keys1, keys2):
+def tensor_from_dict2d(dic, keys1, keys2, delete=True):
     """Create a sequential Tensor from dic, given keys."""
     n_symbols = len(dic.keys())
-    print(f"=> Dataset number symbols: {n_symbols}")
     data = []
+    count = 0
     for k1 in keys1:
         for k2 in keys2:
             if k2 in dic[k1]:
-                #print(f"=> {k1} {k2} : {dic[k1][k2].shape}")
-                data.append(dic[k1][k2])
-    if len(data) == 0:
+                N, FEAT_SIZE, WIN_SIZE = dic[k1][k2].shape
+                count += N
+    if count == 0:
         print("!> Dataset is empty")
         return None
-    x = torch.from_numpy(np.concatenate(data))
-    if torch.isnan(x).sum():
-        print("!> Dataset NaN")
-        return None
+    x = torch.FloatTensor(count, FEAT_SIZE, WIN_SIZE)
+    count = 0
+    for k1 in keys1:
+        for k2 in keys2:
+            if k2 in dic[k1]:
+                N = dic[k1][k2].shape[0]
+                x[count : count + N] = torch.from_numpy(dic[k1][k2])
+                count += N
+                del dic[k1][k2]
     return x
 
 
