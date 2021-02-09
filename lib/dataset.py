@@ -7,6 +7,8 @@ import glob
 
 from lib.utils import *
 
+# test dataset: categorize by symbol and year
+
 
 class BuyPoint(pl.LightningDataModule):
     def __init__(self,
@@ -36,7 +38,8 @@ class BuyPoint(pl.LightningDataModule):
         self.train_symbols, self.val_symbols, self.test_symbols = \
             split(self.all_symbols, 0.7, 0.3)
         self.test_symbols = self.all_symbols
-        
+        # This test is not formal
+
         self.create_datasets()
 
     def create_datasets(self):

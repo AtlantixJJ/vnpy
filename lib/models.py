@@ -6,6 +6,36 @@ import os
 from pytorch_lightning.metrics.functional import precision_recall
 
 
+class TransformerClassifier(torch.nn.Module):
+    def __init__(self, in_dim=5, n_class=4,
+                 hidden_size=128, num_layers=2, nhead=8):
+        super().__init__()
+        self.in_dim = in_dim
+        self.n_class = n_class
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
+        self.embed_layer = MLP(
+            in_dim=in_dim,
+            n_class=hidden_size,
+            dims=[32] * 4)
+        enc_layer = torch.nn.TransformerEncoderLayer(
+            d_model=32,
+            dim_feedforward=hidden_size,
+            dropout=0.1,
+            nhead=nhead)
+        self.enc = torch.nn.TransformerEncoder(enc_layer,
+            num_layers=num_layers)
+        self.linear = torch.nn.Linear(hidden_size, n_class)
+    
+    def forward(self, x):
+        L, N, C = x.shape
+        x = self.embed_layer(x.view(-1, C)).view(L, N, -1)
+        outputs = self.enc(x) # (T, N, E)
+        print(outputs.shape)
+        return self.linear(outputs.mean(0))
+
+
 class GRUClassifier(torch.nn.Module):
     def __init__(self, in_dim=5, n_class=4,
                  hidden_size=128, num_layers=2):
@@ -19,11 +49,12 @@ class GRUClassifier(torch.nn.Module):
             input_size=in_dim,
             hidden_size=hidden_size,
             num_layers=num_layers)
+        self.act = torch.nn.ReLU()
         self.linear = torch.nn.Linear(hidden_size, n_class)
     
     def forward(self, x):
         outputs, hiddens = self.gru(x)
-        return self.linear(outputs[-1])
+        return self.linear(self.act(outputs[-1]))
 
 
 class MLP(torch.nn.Module):

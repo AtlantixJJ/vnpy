@@ -7,7 +7,7 @@ import numpy as np
 import argparse
 
 from lib.dataset import BuyPoint
-from lib.models import GRUClassifier, Learner
+from lib.models import GRUClassifier, TransformerClassifier, Learner
 from lib.utils import plot_dict
 
 if __name__ == "__main__":
@@ -15,17 +15,17 @@ if __name__ == "__main__":
     parser.add_argument("--expr", type=str, default="expr",
         help="The experiment directory.")
     parser.add_argument("--model", type=str, default="GRU",
-        choices=["GRU", "MLP"],
+        choices=["GRU", "MLP", "T"],
         help="Model type.")
     parser.add_argument("--num-layers", type=int, default=4,
         help="The number of hidden layers.")
     parser.add_argument("--hidden-size", type=int, default=128,
         help="The dimension of hidden layers.")
-    parser.add_argument("--train-years", type=str, default="2000-2005",
+    parser.add_argument("--train-years", type=str, default="2014-2017",
         help="The range of training years.")
-    parser.add_argument("--val-years", type=str, default="2000-2005",
+    parser.add_argument("--val-years", type=str, default="2014-2017",
         help="The range of validation years. In the same year.")
-    parser.add_argument("--test-years", type=str, default="2019-2020",
+    parser.add_argument("--test-years", type=str, default="2018-2018",
         help="The range of testing years. Not in the same year.") 
     args = parser.parse_args()
 
@@ -53,10 +53,18 @@ if __name__ == "__main__":
             break
     print(str(dm))
 
-    model = GRUClassifier(
-        in_dim=FEAT_SIZE,
-        hidden_size=args.hidden_size,
-        num_layers=args.num_layers)
+    if args.model == "GRU":
+        model = GRUClassifier(
+            in_dim=FEAT_SIZE,
+            n_class=len(dm.label_keys),
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers)
+    elif args.model == "T":
+        model = TransformerClassifier(
+            in_dim=FEAT_SIZE,
+            n_class=len(dm.label_keys),
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers)
     learner = Learner(model,
         labels=dm.label_keys, is_rnn=True)
     trainer = pl.Trainer(
