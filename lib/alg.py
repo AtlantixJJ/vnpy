@@ -1,7 +1,7 @@
 import os
 
             
-def get_waves(v, T1=0.2, T2=0.10, verbose=False, min_wave_size=5):
+def get_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
     """Annotate waves on prices.
     Args:
         v : The prices.

@@ -23,8 +23,9 @@ def normalize(x):
 
 os.chdir(path)
 
-WIN_SIZE = 10 # two weeks
-SHIFT_PORTION = 3
+WIN_SIZE = 20 # four weeks
+PAD = 0 # the minimum distance between two different labels
+NUM_SEGMENTS = 3
 FEATURE_KEYS = ['open_price', 'close_price', 'high_price', 'low_price', 'volume']
 
 binfos = utils.fast_index().values
@@ -53,87 +54,56 @@ for idx, binfo in enumerate(tqdm(binfos)):
 
     # get waves
     prices = df['close_price'].values
-    waves = get_waves(prices, T1=0.30, T2=0.10)
-    # no interval between waves
-    #inter_waves = []
-    #for i in range(len(waves) - 1):
-    #    bg, ed = waves[i][2] + 1, waves[i+1][0] - 1
-    #    if ed - bg > 2:
-    #        continue
-    #    inter_waves.append((bg, ed))
+    waves = get_waves(prices, T1=0.30, T2=0.20)
 
-    points = {"buy": {}, "hold": {}, "sell": {}, "empty": {}}
-    #times = {"buy": [], "hold": [], "sell": []}
+    points = {k: {} for k in data_keys}
     for year in range(2000, 2022):
         for key in points.keys():
             points[key][str(year)] = []
 
     plot_flag = idx < 5
-    plot_waves = 10
+    plot_waves = 20
     if plot_flag:
         st = 0
         ed = waves[plot_waves - 1][2]
         x = np.arange(st, ed)
         y = df['close_price'].values[st:ed]
+        fig = plt.figure(figsize=(18, 6))
         plt.plot(x, y)
         lx = np.arange(st, ed)
 
     for wave_id, (x1, y1, x2, y2, t) in enumerate(waves):
         if t == -1: # decrease wave
-            offset = 0.9
-            start_key = "sell"
-            middle_key = "empty"
-            end_key = "empty"
+            offset = 0.8
+            start_key, middle_key, end_key = "sell", "hold", "hold"
         elif t == 0: # null wave
             offset = 1.0
-            start_key = "empty"
-            middle_key = "empty"
-            end_key = "empty"
+            start_key, middle_key, end_key = "empty", "empty", "empty"
         elif t == 1: # increase wave
-            offset = 1.1
-            start_key = "buy"
-            middle_key = "hold"
-            end_key = "hold"
-        #if plot_flag and wave_id < plot_waves:
-        #    print(f"=> {wave_id} ({t}) : [{x1}, {x2}]")
+            offset = 1.2
+            start_key, middle_key, end_key = "buy", "hold", "hold"
+        # segment length
+        S = (x2 - x1) // NUM_SEGMENTS
         if plot_flag and t != 0:
             ly = (y2 - y1) * offset / (x2 - x1) * (lx - x1) + y1 * offset
         if plot_flag and t == 0:
             ly = np.zeros_like(lx) + y1 * offset
 
-        # starting segment
-        S = (x2 - x1) // SHIFT_PORTION
-        win_st = max(x1, WIN_SIZE)
-        win_ed = max(x1 + S, WIN_SIZE)
-        if plot_flag and wave_id < plot_waves and win_ed > win_st:
-            plt.plot(lx[win_st:win_ed], ly[win_st:win_ed],
-                        color=key2color[start_key], linestyle=':')
-        for i in range(win_st + 1, win_ed + 1):
-            d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
-            year = str(df.index[i - WIN_SIZE].year)
-            points[start_key][year].append(d)
+        def _work(ckey, win_st, win_ed):
+            if win_st >= win_ed:
+                return None
+            if plot_flag and wave_id < plot_waves and win_ed > win_st:
+                plt.plot(lx[win_st:win_ed], ly[win_st:win_ed],
+                            color=key2color[ckey], linestyle='-')
+            for i in range(win_st, win_ed):
+                d = np.array([df[key][i - WIN_SIZE : i] \
+                        for key in FEATURE_KEYS])
+                year = str(df.index[i - WIN_SIZE].year)
+                points[ckey][year].append(d)
 
-        # middle segment
-        win_st = max(x1 + S, WIN_SIZE)
-        win_ed = min(x2 - S, N)
-        if plot_flag and wave_id < plot_waves and win_ed > win_st:
-            plt.plot(lx[win_st:win_ed], ly[win_st:win_ed],
-                        color=key2color[middle_key], linestyle=':')
-        for i in range(win_st + 1, win_ed + 1):
-            d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
-            year = str(df.index[i - WIN_SIZE].year)
-            points[middle_key][year].append(d)
-
-        # end segment
-        win_st = max(x2 - S, WIN_SIZE)
-        win_ed = min(x2, N)
-        if plot_flag and wave_id < plot_waves and win_ed > win_st:
-            plt.plot(lx[win_st:win_ed], ly[win_st:win_ed],
-                        color=key2color[end_key], linestyle=':')
-        for i in range(win_st + 1, win_ed + 1):
-            d = np.array([df[key][i - WIN_SIZE : i] for key in FEATURE_KEYS])
-            year = str(df.index[i - WIN_SIZE].year)
-            points[end_key][year].append(d)
+        _work(start_key, max(x1 + PAD + 1, WIN_SIZE), x1 + S + 1)
+        _work(middle_key, max(x1 + S + PAD + 1, WIN_SIZE), x2 - S + 1)
+        _work(end_key, max(x2 - S + PAD + 1, WIN_SIZE), x2 + 1)
             
     for key in points.keys():
         for year in points[key]:
