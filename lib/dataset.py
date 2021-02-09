@@ -37,8 +37,25 @@ def tensor_from_dict2d(dic, keys1, keys2):
     return x
 
 
-def balance_class(xs, ys):
-    """Balancing each category. (not implemented)"""
+def balance_class(xs, ys, max_dev=1.1):
+    """Balancing each category.
+    Only re-sample the most imbalanced class.
+    """
+    lens = np.array([y.shape[0] for y in ys])
+    ratios = lens / lens.sum().astype("float32")
+    indice = np.argsort(lens)
+    maxi2, maxi1 = indice[-2:]
+    if ratios[maxi1] > max_dev * ratios[maxi2]:
+        sample_rate = max_dev * lens[maxi2] / lens[maxi1]
+        N_total = xs[maxi1].shape[0]
+        length = int(sample_rate * N_total)
+        new_ratio = length / (lens.sum() - N_total + length)
+        print(f"=> Balance resample class {maxi1} from {ratios[maxi1]*100:.2f}% to {new_ratio*100:.2f}%")
+        rng = np.random.RandomState(1)
+        indice = rng.choice(np.arange(0, N_total),
+            size=(length,), replace=False)
+        xs[-1] = xs[-1][indice]
+        ys[-1] = ys[-1][indice]
     return xs, ys
 
 
@@ -102,9 +119,13 @@ class BuyPoint(pl.LightningDataModule):
                 if val is not None:
                     x.append(val)
                     y.append(torch.Tensor(val.shape[:1]).fill_(i))
-                    setattr(self, f"N_{split}_{k}", y[-1].shape[0])
+                    
             if len(x) > 0:
                 x, y = balance_class(x, y)
+                for i in range(len(y)):
+                    setattr(self,
+                        f"N_{split}_{self.label_keys[i]}",
+                        y[i].shape[0])
                 x = torch.cat(x)
                 y = torch.cat(y)
                 setattr(self, f"N_{split}", x.shape[0])

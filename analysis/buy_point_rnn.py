@@ -6,7 +6,7 @@ import torch
 import numpy as np
 
 from lib.dataset import BuyPoint
-from lib.models import MLP, Learner
+from lib.models import GRUClassifier, Learner
 from lib.utils import plot_dict
 
 DIR = "expr"
@@ -29,10 +29,9 @@ for i, (x, y) in enumerate(dm.train_dataloader()):
     if i > 4:
         break
 print(str(dm))
-mlp = MLP(in_dim=WIN_SIZE * FEAT_SIZE,
-    n_class=len(dm.label_keys),
-    dims=[256, 256, 256, 256, 256, 256, 256, 256])
-learner = Learner(mlp, labels=dm.label_keys)
+# batch_first=False
+model = GRUClassifier(in_dim=FEAT_SIZE, hidden_size=128, num_layers=2)
+learner = Learner(model, labels=dm.label_keys, is_rnn=True)
 trainer = pl.Trainer(
     max_epochs=100,
     progress_bar_refresh_rate=1,
