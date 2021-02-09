@@ -104,7 +104,7 @@ class Learner(pl.LightningModule):
         self.valid_acc = pl.metrics.Accuracy()
     
     def training_step(self, batch, batch_idx):
-        x, y_true = batch # (32, 10, 5)
+        x, y_true = batch # 64, 5, 10
         if self.is_rnn:
             x = x.permute(2, 0, 1).clone().float() - 1
         else:
