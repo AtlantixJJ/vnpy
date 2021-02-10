@@ -14,12 +14,13 @@ import numpy as np
 from tqdm import tqdm
 
 from lib import utils
-from lib.alg import get_waves
+from lib.alg import label_waves
 
 
 def normalize(x):
     #return x / (1e-9 + x.mean(2, keepdims=True))
-    return x / (1e-9 + x[:, :, 0:1])
+    return x[:, :, 1:] / (1e-9 + x[:, :, :-1]) - 1
+
 
 os.chdir(path)
 
@@ -31,7 +32,11 @@ FEATURE_KEYS = ['open_price', 'close_price', 'high_price', 'low_price', 'volume'
 binfos = utils.fast_index().values
 binfos = [b for b in binfos if b[3] == 'd'] # day line only
 data_keys = ["buy", "sell", "hold", "empty"]
-key2color = {"buy": "red", "sell": "green", "hold": "orange", "empty": "blue"}
+key2color = {
+    "buy": "red",
+    "sell": "green",
+    "hold": "orange",
+    "empty": "blue"}
 dic = {k: {} for k in data_keys}
 buy_count = sell_count = hold_count = 0
 for idx, binfo in enumerate(tqdm(binfos)):
@@ -54,7 +59,7 @@ for idx, binfo in enumerate(tqdm(binfos)):
 
     # get waves
     prices = df['close_price'].values
-    waves = get_waves(prices, T1=0.30, T2=0.20)
+    waves, infos = label_waves(prices, T1=0.30, T2=0.20)
 
     points = {k: {} for k in data_keys}
     for year in range(2000, 2022):
@@ -62,14 +67,18 @@ for idx, binfo in enumerate(tqdm(binfos)):
             points[key][str(year)] = []
 
     plot_flag = idx < 5
-    plot_waves = 20
+    plot_waves = 10
     if plot_flag:
         st = 0
         ed = waves[plot_waves - 1][2]
         x = np.arange(st, ed)
         y = df['close_price'].values[st:ed]
-        fig = plt.figure(figsize=(18, 6))
-        plt.plot(x, y)
+        fig = plt.figure(figsize=(18, 12))
+        ax1 = plt.subplot(2, 1, 1)
+        ax1.plot(x, y)
+        ax2 = plt.subplot(2, 1, 2)
+        ax2.plot(infos[st:ed, 0])
+        ax2.plot(infos[st:ed, 3])
         lx = np.arange(st, ed)
 
     for wave_id, (x1, y1, x2, y2, t) in enumerate(waves):
@@ -92,14 +101,15 @@ for idx, binfo in enumerate(tqdm(binfos)):
         def _work(ckey, win_st, win_ed):
             if win_st >= win_ed:
                 return None
-            if plot_flag and wave_id < plot_waves and win_ed > win_st:
-                plt.plot(lx[win_st:win_ed], ly[win_st:win_ed],
-                            color=key2color[ckey], linestyle='-')
             for i in range(win_st, win_ed):
                 d = np.array([df[key][i - WIN_SIZE : i] \
                         for key in FEATURE_KEYS])
                 year = str(df.index[i - WIN_SIZE].year)
                 points[ckey][year].append(d)
+
+        if plot_flag and wave_id < plot_waves:
+            ax1.plot(lx[x1:x2], ly[x1:x2],
+                color=key2color[start_key], linestyle='-')
 
         _work(start_key, max(x1 + PAD + 1, WIN_SIZE), x1 + S + 1)
         _work(middle_key, max(x1 + S + PAD + 1, WIN_SIZE), x2 - S + 1)
@@ -117,9 +127,9 @@ for idx, binfo in enumerate(tqdm(binfos)):
         plt.savefig(f"results/buy_point_viz_{idx}.png")
         plt.close()
 
-    if (idx + 1) % 500 == 0:
-        I = (idx + 1) // 500
-        np.save(f"data/buy_point/share_{I}.npy", dic)
+    if (idx + 1) % 100 == 0:
+        I = (idx + 1) // 100
+        np.save(f"data/buy_point/share_{I:02d}.npy", dic)
         del dic
         dic = {k: {} for k in data_keys}
-np.save(f"data/buy_point/share_{I + 1}.npy", dic)
+np.save(f"data/buy_point/share_{I + 1:02d}.npy", dic)
