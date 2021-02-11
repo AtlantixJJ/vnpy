@@ -82,8 +82,6 @@ def get_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
 
 
 def _label_wave(v, waves, infos, x1, y1, x2, y2, t, T1, T2):
-    waves.append([x1, y1, x2, y2, t])
-
     # current maximum, minimum and their locations
     cmax, cmaxi, cmin, cmini = v[x2], x2, v[x2], x2
     # maximum increase and their start and end
@@ -102,13 +100,62 @@ def _label_wave(v, waves, infos, x1, y1, x2, y2, t, T1, T2):
             md, mdst, mded = cdec, i, cmini
         # whether should terminate
         if t == 1 and -md > T2: 
+            x1 = i + 1
             break # inc wave, check retract
-        elif t == 0 and (mi > T2 or -md > T2):
+        elif t == 0 and (mi > T1 or -md > T1):
+            x1 = i + 1
             break # null wave, check wave type
         elif t == -1 and (mi > T2):
+            x1 = i + 1
             break # dec wave, check increase
         
-        infos[i] = cinc, mi, mist, mied, cdec, md, mdst, mded
+        #infos[i] = cinc, mi, mist, mied, cdec, md, mdst, mded
+        infos[i] = cinc, cdec
+        if i == 0:
+            x1 = 0
+    x1, x2 = max(0, x1), max(0, x2)
+    y1, y2 = v[x1], v[x2]
+    waves.append([x1, y1, x2, y2, t])
+
+
+def merge_waves(waves):
+    """Merge waves with same type."""
+    i = 1
+    waves.sort(key=lambda x: x[0])
+    while i < len(waves):
+        pw = waves[i - 1]
+        cw = waves[i]
+        if pw[-1] == cw[-1]: # merge same waves
+            waves[i] = [pw[0], pw[1], cw[2], cw[3], cw[-1]]
+            del waves[i - 1] # this wave is merged into previous one
+            continue
+        i += 1
+        
+
+def post_process_waves(waves, v, min_wave_size):
+    """Remove unncesssary null waves."""
+    i = 1
+    while i < len(waves):
+        pw = waves[i - 1]
+        cw = waves[i]
+        #if pw[-1] == cw[-1]: # merge same waves
+        #    waves[i] = [pw[0], pw[1], cw[2], cw[3], cw[-1]]
+        #    del waves[i - 1] # this wave is merged into previous one
+        #    continue
+        
+        # resolve overlap
+        if cw[-1] == 0 and pw[-1] != 0: 
+            waves[i] = [pw[2] + 1, v[pw[2] + 1], cw[2], cw[3], cw[-1]]
+            if waves[i][2] - waves[i][0] < min_wave_size:
+                del waves[i] # small wave: delete
+                continue
+        elif cw[-1] != 0 and pw[-1] == 0:
+            waves[i - 1] = [pw[0], pw[1], cw[0] - 1, v[cw[0] - 1], pw[-1]]
+            if waves[i - 1][2] - waves[i - 1][0] < min_wave_size:
+                del waves[i - 1] # small wave: delete
+                continue
+        
+        i += 1
 
 
 def label_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
@@ -124,9 +171,10 @@ def label_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
         null, and increasing waves, respectively.
     """
     waves = []
-    # wave profit, largest increase, start, end;
+    # 8: wave profit, largest increase, start, end;
     # wave retract, largest decrease, start, end
-    infos = np.zeros((v.shape[0], 8)) 
+    # 2: wave profit, wave retract
+    infos = np.zeros((v.shape[0], 2))# 8)) 
     wave_idx = 0
     wave_type = 0
     lmax, lmin = v[0], v[0]
@@ -155,7 +203,7 @@ def label_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
             wave_idx = lmini
             lmaxi, lmax = i, v[i]
             wave_type = 0
-        if dec_rate >= T1 and wave_type != -1:
+        elif dec_rate >= T1 and wave_type != -1:
             _label_wave(v, waves, infos, wave_idx, v[wave_idx],
                         lmaxi - 1, v[lmaxi - 1], wave_type, T1, T2)
             wave_idx = lmaxi
@@ -178,5 +226,5 @@ def label_waves(v, T1=0.20, T2=0.10, verbose=False, min_wave_size=5):
 
     _label_wave(v, waves, infos, wave_idx, v[wave_idx],
         v.shape[0] - 1, v[-1], wave_type, T1, T2)
-    waves = [w for w in waves if w[2] - w[0] > min_wave_size]
+    post_process_waves(waves, v, min_wave_size)
     return waves, infos
