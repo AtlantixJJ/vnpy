@@ -54,7 +54,8 @@ class GRUClassifier(torch.nn.Module):
     
     def forward(self, x):
         outputs, hiddens = self.gru(x)
-        return self.linear(self.act(outputs[-1]))
+        L, N, C = outputs.shape
+        return self.linear(outputs.view(-1, C)).view(L, N, -1)
 
 
 class MLP(torch.nn.Module):
@@ -135,14 +136,15 @@ class Learner(pl.LightningModule):
         self.valid_acc = pl.metrics.Accuracy()
     
     def training_step(self, batch, batch_idx):
-        x, y_true = batch # 64, 5, 10
+        x, y_true = batch # N, L, C
+        y_true = y_true.permute(1, 0).reshape(-1)
         if self.is_rnn:
-            x = x.permute(2, 0, 1).clone().float() - 1
+            x = x.permute(1, 0, 2)
         else:
-            x = x.view(x.shape[0], -1).float() - 1
+            x = x.view(x.shape[0], -1)
         y = self.model(x)
-        c = self.loss_fn(y, y_true.long())
-        P, R = precision_recall(y.argmax(1), y_true,
+        c = self.loss_fn(y.view(-1, y.shape[-1]), y_true)
+        P, R = precision_recall(y.argmax(2).view(-1), y_true,
                 num_classes=len(self.labels),
                 class_reduction="none")
         for i in range(len(self.labels)):
@@ -158,12 +160,13 @@ class Learner(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y_true = batch
+        y_true = y_true.permute(1, 0).reshape(-1)
         if self.is_rnn:
-            x = x.permute(2, 0, 1).clone().float() - 1
+            x = x.permute(1, 0, 2)
         else:
-            x = x.view(x.shape[0], -1).float() - 1
-        y = self.model(x).argmax(1)
-        P, R = precision_recall(y, y_true,
+            x = x.view(x.shape[0], -1)
+        y = self.model(x).argmax(2)
+        P, R = precision_recall(y.view(-1), y_true,
             num_classes=len(self.labels),
             class_reduction="none")
         for i in range(len(self.labels)):
@@ -178,12 +181,13 @@ class Learner(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x, y_true = batch # (32, 5, 10)
+        y_true = y_true.permute(1, 0).reshape(-1)
         if self.is_rnn:
-            x = x.permute(2, 0, 1).clone().float() - 1
+            x = x.permute(1, 0, 2)
         else:
-            x = x.view(x.shape[0], -1).float() - 1
-        y = self.model(x).argmax(1)
-        P, R = precision_recall(y, y_true,
+            x = x.view(x.shape[0], -1)
+        y = self.model(x).argmax(2)
+        P, R = precision_recall(y.view(-1), y_true,
             num_classes=len(self.labels),
             class_reduction="none")
         for i in range(len(self.labels)):

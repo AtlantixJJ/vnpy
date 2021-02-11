@@ -63,13 +63,14 @@ class DictListSampler(torch.utils.data.Dataset):
         N = x.shape[0] # total length
         # randomly sample a position
         idx = np.random.randint(0, N - self.win_size)
-        segx = x[idx : idx + self.win_size]
+        segx = torch.FloatTensor(x[idx : idx + self.win_size])
         segx[1:] = (segx[1:] / (1e-9 + segx[:-1]) - 1) * 100 # inc & dec
         segx[0] = 0
         seginfo = info[idx : idx + self.win_size]
+        label = torch.LongTensor(label_wavepr(seginfo))
         if self.return_info:
-            return segx, seginfo, label_wavepr(seginfo)
-        return segx, label_wavepr(seginfo)
+            return segx, torch.FloatTensor(seginfo), label
+        return segx, label
 
 
 def year_symbol_list(years, dic, min_size=50):
@@ -113,12 +114,12 @@ class PointwiseDataset(pl.LightningDataModule):
             batch_size=batch_size, shuffle=True)
     
     def val_dataloader(self, batch_size=64):
-        self.val_ds.return_info = return_info
+        self.val_ds.return_info = False
         return DataLoader(self.val_ds,
             batch_size=batch_size, shuffle=False)
     
     def test_dataloader(self, batch_size=64):
-        self.test_ds.return_info = return_info
+        self.test_ds.return_info = False
         return DataLoader(self.test_ds,
             batch_size=batch_size, shuffle=False)
             

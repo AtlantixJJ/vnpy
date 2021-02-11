@@ -18,9 +18,9 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="GRU",
         choices=["GRU", "MLP", "T"],
         help="Model type.")
-    parser.add_argument("--num-layers", type=int, default=4,
+    parser.add_argument("--num-layers", type=int, default=2,
         help="The number of hidden layers.")
-    parser.add_argument("--hidden-size", type=int, default=128,
+    parser.add_argument("--hidden-size", type=int, default=64,
         help="The dimension of hidden layers.")
     parser.add_argument("--train-years", type=str, default="2013-2017",
         help="The range of training years.")
@@ -38,8 +38,9 @@ if __name__ == "__main__":
         test_years=args.test_years)
 
     # show dataset results
-    for i, (feats, infos, labels) in enumerate(dm.train_dataloader()):
-        colors = label2color(labels[0])
+    dl = dm.train_dataloader(return_info=True)
+    for i, (feats, infos, labels) in enumerate(dl):
+        colors = label2color(labels[0]) # (64, 128, 5)
         x = np.arange(feats.shape[1])
         close_prices = feats[0, :, 1].numpy()
         fig = plt.figure(figsize=(10, 7))
