@@ -10,7 +10,6 @@ from datetime import datetime
 from vnpy.trader.database import database_manager
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
 import numpy as np
 from tqdm import tqdm
 import pytz
@@ -102,11 +101,7 @@ for idx, binfo in enumerate(tqdm(binfos)):
     fig = plt.figure(figsize=(18, 12))
     ax1 = plt.subplot(2, 1, 1)
     colors = [key2color[data_keys[l]] for l in labels]
-    points = np.array([x, y]).T.reshape(-1, 1, 2)
-    segments = np.concatenate([points[:-1], points[1:]], 1)
-    lc = LineCollection(segments, colors=colors)
-    #ax1.plot(x, y) # price
-    ax1.add_collection(lc)
+    utils.plot_multicolor_line(ax1, x, y, colors)
     ax1.set_title("Close Price & Wave")
     ax2 = plt.subplot(2, 1, 2)
     ax2.plot(infos[st:ed, 0] * 100)

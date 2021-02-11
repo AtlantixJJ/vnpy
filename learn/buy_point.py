@@ -21,15 +21,15 @@ if __name__ == "__main__":
         help="The number of hidden layers.")
     parser.add_argument("--hidden-size", type=int, default=128,
         help="The dimension of hidden layers.")
-    parser.add_argument("--train-years", type=str, default="2014-2017",
+    parser.add_argument("--train-years", type=str, default="2013-2017",
         help="The range of training years.")
-    parser.add_argument("--val-years", type=str, default="2014-2017",
+    parser.add_argument("--val-years", type=str, default="2013-2017",
         help="The range of validation years. In the same year.")
-    parser.add_argument("--test-years", type=str, default="2018-2018",
+    parser.add_argument("--test-years", type=str, default="2018-2019",
         help="The range of testing years. Not in the same year.") 
     args = parser.parse_args()
 
-    args_name = f"{args.model}_n{args.num_layers}_h{args.hidden_size}"
+    args_name = f"buypoint_{args.model}_n{args.num_layers}_h{args.hidden_size}"
     logger = pl_logger.TensorBoardLogger(args.expr, name=args_name)
     dm = BuyPoint(
         train_years=args.train_years,

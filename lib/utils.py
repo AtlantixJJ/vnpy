@@ -6,6 +6,7 @@ import matplotlib.style as style
 style.use('seaborn-poster') #sets the size of the charts
 style.use('ggplot')
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import numpy as np
 import talib as ta
 
@@ -13,6 +14,17 @@ import talib as ta
 #########################
 ##### visualization #####
 #########################
+
+
+def label2color(y, color_dict={0: 'b', 1: 'r', 2: 'g'}):
+    return [color_dict[int(num)] for num in y]
+
+
+def plot_multicolor_line(ax, x, y, colors):
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], 1)
+    lc = LineCollection(segments, colors=colors)
+    ax.add_collection(lc)
 
 
 def plot_color_bar(ax, bars, mark):
@@ -26,7 +38,7 @@ def plot_color_bar(ax, bars, mark):
     ax.bar(greens, bars[greens], color='g')
 
 
-def plot_color_line(ax, mark):
+def plot_color_vmark(ax, mark):
     reds = np.where(mark == 1)[0]
     blues = np.where(mark == 2)[0]
     for idx in blues:
@@ -52,7 +64,7 @@ def plot_dict_line(ax, dic, days):
         ax.plot(val[-days:])
     # draw markings
     if "mark" in dic:
-        plot_color_line(ax, dic["mark"][-days:])
+        plot_color_vmark(ax, dic["mark"][-days:])
 
 
 def plot_dict(dic, fpath, days=365):
@@ -112,7 +124,7 @@ def parse_years(year_range):
     """
     st, ed = year_range.split("-")
     st, ed = int(st), int(ed)
-    return [str(year) for year in range(st, ed + 1)]
+    return [year for year in range(st, ed + 1)]
 
 
 def split(data, train_ratio, val_ratio, seed=None):
