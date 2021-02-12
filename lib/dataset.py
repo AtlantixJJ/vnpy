@@ -38,13 +38,20 @@ def label_wavepr(arr, T1=0.30, T2=0.15):
     return label, [N - buy_count - sell_count, buy_count, sell_count]
 
 
-def label_wavepr_dataset(year_symbols, label_dic):
-    """Label a whole year-symbol dataset"""
+def label_wavepr_dataset(year_symbols, label_dic, info_dic):
+    """Label a whole year-symbol dataset.
+    Args:
+        year_symbols: The key list.
+        label_dic: The target dict to be modified.
+        info_dic: The information dict used for labeling.
+    Returns:
+        The label count for each category.
+    """
     total_counts = []
     for k1, k2 in year_symbols:
         if k1 not in label_dic:
             label_dic[k1] = {}
-        label, counts = label_wavepr(label_dic[k1][k2])
+        label, counts = label_wavepr(info_dic[k1][k2])
         label_dic[k1][k2] = label
         if len(total_counts) == 0:
             total_counts = np.array(counts)
@@ -55,11 +62,13 @@ def label_wavepr_dataset(year_symbols, label_dic):
 
 class DictListSampler(torch.utils.data.Dataset):
     """The data is organized in a dict.
-    The value is an array that needs to be sampled."""
+    The value is an array that needs to be sampled.
+    """
 
-    def __init__(self, data_dic, label_dic, listkeys):
+    def __init__(self, listkeys, data_dic, label_dic, info_dic=None):
         self.data_dic = data_dic
         self.label_dic = label_dic
+        self.info_dic = info_dic
         self.listkeys = listkeys
         self.return_info = False
     
@@ -67,16 +76,19 @@ class DictListSampler(torch.utils.data.Dataset):
         self.win_size = size
     
     def query(self, keys):
-        res = [0, 0]
+        res = [0, 0, 0]
         if len(keys) == 1:
             res[0] = self.data_dic[keys[0]]
-            res[1] = self.label_dic[keys[0]]
+            res[1] = self.info_dic[keys[0]]
+            res[2] = self.label_dic[keys[0]]
         elif len(keys) == 2:
             res[0] = self.data_dic[keys[0]][keys[1]]
-            res[1] = self.label_dic[keys[0]][keys[1]]
+            res[1] = self.info_dic[keys[0]][keys[1]]
+            res[2] = self.label_dic[keys[0]][keys[1]]
         elif len(keys) == 3:
             res[0] = self.data_dic[keys[0]][keys[1]][keys[2]]
-            res[1] = self.label_dic[keys[0]][keys[1]][keys[2]]
+            res[1] = self.info_dic[keys[0]][keys[1]][keys[2]]
+            res[2] = self.label_dic[keys[0]][keys[1]][keys[2]]
         return res
     
     def __len__(self):
@@ -84,39 +96,40 @@ class DictListSampler(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         keys = self.listkeys[idx]
-        x, info = self.query(keys)
+        x, info, label = self.query(keys)
         N = x.shape[0] # total length
         # randomly sample a position
         if self.win_size == 0:
             segx = torch.FloatTensor(x)
             seginfo = info
+            seglabel = label
         else:
             idx = np.random.randint(0, N - self.win_size)
             segx = torch.FloatTensor(x[idx : idx + self.win_size])
             seginfo = info[idx : idx + self.win_size]
+            seglabel = label[idx : idx + self.win_size]
 
         segx[1:] = (segx[1:] / (1e-9 + segx[:-1]) - 1) * 100 
         segx[0] = 0
-        label, counts = torch.LongTensor(label_wavepr(seginfo))
+        seglabel = torch.LongTensor(seglabel)
 
-        if self.return_info:
-            return segx, torch.FloatTensor(seginfo), label
-        return segx, label
-
-
-
-
-
+        if self.return_info and self.info_dic:
+            return segx, torch.FloatTensor(seginfo), seglabel
+        return segx, seglabel
 
 
 class PointwiseDataset(pl.LightningDataModule):
+    """year data and corresponding pointwise labeling."""
+
     def __init__(self,
+                 labels=["hold", "buy", "sell"],
                  year_data_path="data/year_data.npz",
                  wave_pr_path="data/wave_pr.npz",
                  train_years="2000-2005",
                  val_years="2000-2005",
                  test_years="2006-2006"):
         super().__init__()
+        self.labels = labels
         self.train_years = parse_years(train_years)
         self.val_years = parse_years(val_years)
         self.test_years = parse_years(test_years)
@@ -131,11 +144,26 @@ class PointwiseDataset(pl.LightningDataModule):
 
         for split in ["train", "val", "test"]:
             year = getattr(self, f"{split}_years")
-            l = year_symbol_list(year, self.data_dic, 128)
-            ds = DictListSampler(self.data_dic, self.label_dic, l)
+            keylist = year_symbol_list(year, self.data_dic, 128)
+            label_counts = label_wavepr_dataset(
+                keylist, self.label_dic, self.info_dic)
+            ds = DictListSampler(keylist,
+                self.data_dic, self.label_dic, self.info_dic)
             ds.set_window(128 if split == "train" else 0)
-            label_counts = label
+            setattr(self, f"{split}_counts", label_counts)
             setattr(self, f"{split}_ds", ds)
+
+    def __str__(self):
+        s = f"=> Pointwise dataset\n"
+        for split in ["train", "val", "test"]:
+            counts = getattr(self, f"{split}_counts")
+            N = sum(counts)
+            s += f"=> {split} items {N}\n"
+            for i in range(len(counts)):
+                s += f"=> {self.labels[i]}:"
+                s += f"{counts[i]}({int(counts[i]/N*100)}%) "
+            s += "\n"
+        return s
 
     def train_dataloader(self, batch_size=64, return_info=False):
         self.train_ds.return_info = return_info

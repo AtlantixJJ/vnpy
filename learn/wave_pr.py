@@ -33,6 +33,7 @@ if __name__ == "__main__":
     args_name = f"wavepr_{args.model}_n{args.num_layers}_h{args.hidden_size}"
     logger = pl_logger.TensorBoardLogger(args.expr, name=args_name)
     dm = PointwiseDataset(
+        labels=["hold", "buy", "sell"],
         train_years=args.train_years,
         val_years=args.val_years,
         test_years=args.test_years)
@@ -68,14 +69,13 @@ if __name__ == "__main__":
     elif args.model == "T":
         model = TransformerClassifier(
             in_dim=5,
-            n_class=3,
+            n_class=len(dm.labels),
             hidden_size=args.hidden_size,
             num_layers=args.num_layers)
     learner = Learner(model,
-        labels=["hold", "buy", "sell"], is_rnn=True)
+        labels=dm.labels, is_rnn=True)
     trainer = pl.Trainer(
         logger=logger,
-        val_check_interval=10,
         max_epochs=1000,
         progress_bar_refresh_rate=1)
     res = trainer.test(learner, dm.val_dataloader())
