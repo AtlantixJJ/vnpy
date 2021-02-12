@@ -24,9 +24,9 @@ if __name__ == "__main__":
         help="The dimension of hidden layers.")
     parser.add_argument("--train-years", type=str, default="2013-2017",
         help="The range of training years.")
-    parser.add_argument("--val-years", type=str, default="2013-2017",
+    parser.add_argument("--val-years", type=str, default="2018-2018",
         help="The range of validation years. In the same year.")
-    parser.add_argument("--test-years", type=str, default="2018-2019",
+    parser.add_argument("--test-years", type=str, default="2019-2019",
         help="The range of testing years. Not in the same year.") 
     args = parser.parse_args()
 
@@ -75,7 +75,8 @@ if __name__ == "__main__":
         labels=["hold", "buy", "sell"], is_rnn=True)
     trainer = pl.Trainer(
         logger=logger,
-        max_epochs=100,
+        val_check_interval=10,
+        max_epochs=1000,
         progress_bar_refresh_rate=1)
     res = trainer.test(learner, dm.val_dataloader())
     trainer.fit(learner, dm)

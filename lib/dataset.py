@@ -7,7 +7,14 @@ import glob
 
 from lib.utils import *
 
-# test dataset: categorize by symbol and year
+
+def year_symbol_list(years, dic, min_size=50):
+    res = []
+    for y in years:
+        for s in dic[y]:
+            if dic[y][s].shape[0] > min_size:
+                res.append([y, s])
+    return res
 
 
 def label_wavepr(arr, T1=0.30, T2=0.15):
@@ -15,7 +22,7 @@ def label_wavepr(arr, T1=0.30, T2=0.15):
     Args:
         arr: (N, 2) array, denoting profit and retract.
         T1: The threshold for minimum profit.
-        T2: THe threshold for maximum retract.
+        T2: The threshold for maximum retract.
     """
     P, R = arr[:, 0], arr[:, 1]
     buy_labels = (P > T1) & (-R < P / 2) # label 1
@@ -25,7 +32,25 @@ def label_wavepr(arr, T1=0.30, T2=0.15):
     label = np.zeros((arr.shape[0],), dtype="uint8")
     label[buy_labels] = 1
     label[sell_labels] = 2
-    return label
+    buy_count = buy_labels.sum()
+    sell_count = sell_labels.sum()
+    N = arr.shape[0]
+    return label, [N - buy_count - sell_count, buy_count, sell_count]
+
+
+def label_wavepr_dataset(year_symbols, label_dic):
+    """Label a whole year-symbol dataset"""
+    total_counts = []
+    for k1, k2 in year_symbols:
+        if k1 not in label_dic:
+            label_dic[k1] = {}
+        label, counts = label_wavepr(label_dic[k1][k2])
+        label_dic[k1][k2] = label
+        if len(total_counts) == 0:
+            total_counts = np.array(counts)
+        else:
+            total_counts += np.array(counts)
+    return total_counts
 
 
 class DictListSampler(torch.utils.data.Dataset):
@@ -62,24 +87,26 @@ class DictListSampler(torch.utils.data.Dataset):
         x, info = self.query(keys)
         N = x.shape[0] # total length
         # randomly sample a position
-        idx = np.random.randint(0, N - self.win_size)
-        segx = torch.FloatTensor(x[idx : idx + self.win_size])
-        segx[1:] = (segx[1:] / (1e-9 + segx[:-1]) - 1) * 100 # inc & dec
+        if self.win_size == 0:
+            segx = torch.FloatTensor(x)
+            seginfo = info
+        else:
+            idx = np.random.randint(0, N - self.win_size)
+            segx = torch.FloatTensor(x[idx : idx + self.win_size])
+            seginfo = info[idx : idx + self.win_size]
+
+        segx[1:] = (segx[1:] / (1e-9 + segx[:-1]) - 1) * 100 
         segx[0] = 0
-        seginfo = info[idx : idx + self.win_size]
-        label = torch.LongTensor(label_wavepr(seginfo))
+        label, counts = torch.LongTensor(label_wavepr(seginfo))
+
         if self.return_info:
             return segx, torch.FloatTensor(seginfo), label
         return segx, label
 
 
-def year_symbol_list(years, dic, min_size=50):
-    res = []
-    for y in years:
-        for s in dic[y]:
-            if dic[y][s].shape[0] > min_size:
-                res.append([y, s])
-    return res
+
+
+
 
 
 class PointwiseDataset(pl.LightningDataModule):
@@ -98,14 +125,16 @@ class PointwiseDataset(pl.LightningDataModule):
         
         self.data_dic = np.load(year_data_path,
                                 allow_pickle=True)['arr_0'][()]
-        self.label_dic = np.load(wave_pr_path,
+        self.info_dic = np.load(wave_pr_path,
                                 allow_pickle=True)['arr_0'][()]
-        win_size = 128 
+        self.label_dic = {}
+
         for split in ["train", "val", "test"]:
             year = getattr(self, f"{split}_years")
-            l = year_symbol_list(year, self.data_dic, win_size)
+            l = year_symbol_list(year, self.data_dic, 128)
             ds = DictListSampler(self.data_dic, self.label_dic, l)
-            ds.set_window(win_size)
+            ds.set_window(128 if split == "train" else 0)
+            label_counts = label
             setattr(self, f"{split}_ds", ds)
 
     def train_dataloader(self, batch_size=64, return_info=False):
@@ -113,12 +142,12 @@ class PointwiseDataset(pl.LightningDataModule):
         return DataLoader(self.train_ds,
             batch_size=batch_size, shuffle=True)
     
-    def val_dataloader(self, batch_size=64):
+    def val_dataloader(self, batch_size=1):
         self.val_ds.return_info = False
         return DataLoader(self.val_ds,
             batch_size=batch_size, shuffle=False)
     
-    def test_dataloader(self, batch_size=64):
+    def test_dataloader(self, batch_size=1):
         self.test_ds.return_info = False
         return DataLoader(self.test_ds,
             batch_size=batch_size, shuffle=False)
