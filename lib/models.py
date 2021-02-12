@@ -135,14 +135,18 @@ class Learner(pl.LightningModule):
         self.train_acc = pl.metrics.Accuracy()
         self.valid_acc = pl.metrics.Accuracy()
     
-    def training_step(self, batch, batch_idx):
-        x, y_true = batch # N, L, C
-        y_true = y_true.permute(1, 0).reshape(-1)
+    def forward(self, x):
+        """Return a flattened tensor. (N, L, C) -> (L * N,)"""
         if self.is_rnn:
             x = x.permute(1, 0, 2)
         else:
             x = x.view(x.shape[0], -1)
-        y = self.model(x)
+        return self.model(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y_true = batch # N, L, C
+        y_true = y_true.permute(1, 0).reshape(-1) # L, N
+        y = self(x) # L, N, C
         c = self.loss_fn(y.view(-1, y.shape[-1]), y_true)
         P, R = precision_recall(y.argmax(2).view(-1), y_true,
                 num_classes=len(self.labels),
@@ -161,11 +165,8 @@ class Learner(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y_true = batch
         y_true = y_true.permute(1, 0).reshape(-1)
-        if self.is_rnn:
-            x = x.permute(1, 0, 2)
-        else:
-            x = x.view(x.shape[0], -1)
-        y = self.model(x).argmax(2)
+        y = self(x)
+        y = y.argmax(2)
         P, R = precision_recall(y.view(-1), y_true,
             num_classes=len(self.labels),
             class_reduction="none")
@@ -182,11 +183,8 @@ class Learner(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y_true = batch # (32, 5, 10)
         y_true = y_true.permute(1, 0).reshape(-1)
-        if self.is_rnn:
-            x = x.permute(1, 0, 2)
-        else:
-            x = x.view(x.shape[0], -1)
-        y = self.model(x).argmax(2)
+        y = self(x)
+        y = y.argmax(2)
         P, R = precision_recall(y.view(-1), y_true,
             num_classes=len(self.labels),
             class_reduction="none")

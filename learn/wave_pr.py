@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 
 from lib.dataset import PointwiseDataset
 from lib.models import GRUClassifier, TransformerClassifier, Learner
-from lib.utils import plot_multicolor_line, label2color
+from lib.utils import plot_wave_pr
+from lib.callback import WavePRVisualizer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -39,27 +40,20 @@ if __name__ == "__main__":
         test_years=args.test_years)
 
     # show dataset results
-    dl = dm.train_dataloader(return_info=True)
-    for i, (feats, infos, labels) in enumerate(dl):
-        colors = label2color(labels[0]) # (64, 128, 5)
-        x = np.arange(feats.shape[1])
-        close_prices = feats[0, :, 1].numpy()
-        fig = plt.figure(figsize=(10, 7))
-        ax1 = plt.subplot(2, 1, 1)
-        plot_multicolor_line(ax1, x, close_prices, colors)
-        ax1.set_xlim([0, x.shape[0]])
-        ax1.set_ylim([-10, 10])
-        ax1.set_title("Delta Percentages (%) & Wave")
-        ax2 = plt.subplot(2, 1, 2)
-        ax2.plot(infos[0, :, 0] * 100)
-        ax2.plot(infos[0, :, 1] * 100)
-        ax2.set_title("Wave Profit & Retract (%)")
+    dl = dm.val_dataloader(return_info=True)
+    feats, infos, labels = [], [], []
+    for i, (feat, info, label) in enumerate(dl):
+        feats.append(feat)
+        infos.append(info)
+        labels.append(label)
+        plot_wave_pr(feat, info, label, label)
+        plt.tight_layout()
         plt.savefig(f"results/train_viz_{i}.png")
         plt.close()
         if i > 4:
             break
     print(str(dm))
-
+    wavepr_viz = WavePRVisualizer(feats, infos, labels)
     if args.model == "GRU":
         model = GRUClassifier(
             in_dim=5,
@@ -76,9 +70,11 @@ if __name__ == "__main__":
         labels=dm.labels, is_rnn=True)
     trainer = pl.Trainer(
         logger=logger,
-        max_epochs=1000,
+        callbacks=[wavepr_viz],
+        max_epochs=500,
+        check_val_every_n_epoch=5,
         progress_bar_refresh_rate=1)
-    res = trainer.test(learner, dm.val_dataloader())
+    #res = trainer.test(learner, dm.test_dataloader())
     trainer.fit(learner, dm)
     res = trainer.test(learner, dm.test_dataloader())
     torch.save(model.state_dict(), f"{args.expr}/{args_name}/model.pth")

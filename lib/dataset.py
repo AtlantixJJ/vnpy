@@ -108,7 +108,8 @@ class DictListSampler(torch.utils.data.Dataset):
             segx = torch.FloatTensor(x[idx : idx + self.win_size])
             seginfo = info[idx : idx + self.win_size]
             seglabel = label[idx : idx + self.win_size]
-
+        
+        # percentage
         segx[1:] = (segx[1:] / (1e-9 + segx[:-1]) - 1) * 100 
         segx[0] = 0
         seglabel = torch.LongTensor(seglabel)
@@ -158,9 +159,9 @@ class PointwiseDataset(pl.LightningDataModule):
         for split in ["train", "val", "test"]:
             counts = getattr(self, f"{split}_counts")
             N = sum(counts)
-            s += f"=> {split} items {N}\n"
+            s += f"=> {split} items {N}\n=> "
             for i in range(len(counts)):
-                s += f"=> {self.labels[i]}:"
+                s += f"{self.labels[i]}:"
                 s += f"{counts[i]}({int(counts[i]/N*100)}%) "
             s += "\n"
         return s
@@ -170,13 +171,13 @@ class PointwiseDataset(pl.LightningDataModule):
         return DataLoader(self.train_ds,
             batch_size=batch_size, shuffle=True)
     
-    def val_dataloader(self, batch_size=1):
-        self.val_ds.return_info = False
+    def val_dataloader(self, batch_size=1, return_info=False):
+        self.val_ds.return_info = return_info
         return DataLoader(self.val_ds,
             batch_size=batch_size, shuffle=False)
     
-    def test_dataloader(self, batch_size=1):
-        self.test_ds.return_info = False
+    def test_dataloader(self, batch_size=1, return_info=False):
+        self.test_ds.return_info = return_info
         return DataLoader(self.test_ds,
             batch_size=batch_size, shuffle=False)
             
